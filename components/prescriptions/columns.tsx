@@ -4,7 +4,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Prescription } from "../../types/prescription";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Calendar, User } from "lucide-react";
+import { Download, Eye, Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { faIR } from "date-fns/locale";
 import { downloadPrescriptionPDFLegacy as downloadPrescriptionPDF } from "../../utils/generatePrescriptionPDF";
@@ -12,10 +12,12 @@ import { useState } from "react";
 
 interface ColumnsProps {
   onViewDetails: (prescription: Prescription) => void;
+  onDelete: (prescriptionId: string) => void;
 }
 
 export const useColumns = ({
   onViewDetails,
+  onDelete,
 }: ColumnsProps): ColumnDef<Prescription>[] => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -27,6 +29,16 @@ export const useColumns = ({
       console.error("Failed to download PDF:", error);
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDelete = (prescriptionId: string, patientName: string) => {
+    if (
+      confirm(
+        `آیا از حذف نسخه بیمار "${patientName}" اطمینان دارید؟ این عمل غیرقابل بازگشت است.`
+      )
+    ) {
+      onDelete(prescriptionId);
     }
   };
 
@@ -68,7 +80,9 @@ export const useColumns = ({
       accessorKey: "prescriptionDate",
       header: "تاریخ",
       cell: ({ row }) => {
-        const date = new Date(row.original.prescriptionDate);
+        const date = row.original.prescriptionDate
+          ? new Date(row.original.prescriptionDate)
+          : new Date();
         return (
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-gray-500" />
@@ -77,15 +91,20 @@ export const useColumns = ({
         );
       },
       sortingFn: (rowA, rowB) => {
-        const dateA = new Date(rowA.original.prescriptionDate).getTime();
-        const dateB = new Date(rowB.original.prescriptionDate).getTime();
+        const dateA = rowA.original.prescriptionDate
+          ? new Date(rowA.original.prescriptionDate).getTime()
+          : 0;
+        const dateB = rowB.original.prescriptionDate
+          ? new Date(rowB.original.prescriptionDate).getTime()
+          : 0;
         return dateA - dateB;
       },
     },
     {
-      accessorKey: "prescription",
+      accessorKey: "medicines",
       header: "تعداد داروها",
       cell: ({ row }) => {
+        // Access the prescription field which contains the medicines array
         const medicines = row.original.prescription || [];
         return (
           <div className="text-center">
@@ -100,11 +119,12 @@ export const useColumns = ({
       accessorKey: "status",
       header: "وضعیت",
       cell: ({ row }) => {
-        const status = row.original.status;
+        const status = row.original.status || "active";
         const statusConfig = {
           active: { label: "فعال", color: "bg-green-100 text-green-800" },
           completed: { label: "تکمیل شده", color: "bg-blue-100 text-blue-800" },
           cancelled: { label: "لغو شده", color: "bg-red-100 text-red-800" },
+          draft: { label: "پیش‌نویس", color: "bg-yellow-100 text-yellow-800" },
         };
 
         const config = statusConfig[status as keyof typeof statusConfig] || {
@@ -134,17 +154,17 @@ export const useColumns = ({
               variant="outline"
               size="sm"
               onClick={() => onViewDetails(prescription)}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 h-8"
             >
               <Eye className="h-4 w-4" />
-              مشاهده جزئیات
+              جزئیات
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => handleDownload(prescription)}
               disabled={isDownloading}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 h-8"
             >
               {isDownloading ? (
                 <>
@@ -157,6 +177,17 @@ export const useColumns = ({
                   PDF
                 </>
               )}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() =>
+                handleDelete(prescription.id, prescription.patientName)
+              }
+              className="flex items-center gap-1 h-8"
+            >
+              <Trash2 className="h-4 w-4" />
+              حذف
             </Button>
           </div>
         );

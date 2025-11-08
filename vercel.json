@@ -1,0 +1,12 @@
+{
+  "buildCommand": "next build",
+  "ignoreCommand": "gitignore",
+  "framework": "nextjs",
+  "build": {
+    "env": {
+      "ESLINT_DISABLED": "true"
+    }
+  },
+  "installCommand": "npm install",
+  "outputDirectory": ".next"
+}

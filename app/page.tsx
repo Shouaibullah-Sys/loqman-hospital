@@ -1,3 +1,4 @@
+// app/page.tsx
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import DashboardClient from "@/components/dashboard-client";
@@ -19,14 +20,6 @@ async function getPrescriptions(): Promise<Prescription[]> {
     console.log("Response status:", response.status);
 
     if (!response.ok) {
-      if (response.status === 401) {
-        console.log("Unauthorized - returning empty array");
-        return [];
-      }
-      if (response.status === 404) {
-        console.log("Prescriptions API not found - returning empty array");
-        return [];
-      }
       console.log("Response not OK, status:", response.status);
       return [];
     }
@@ -34,7 +27,19 @@ async function getPrescriptions(): Promise<Prescription[]> {
     const result = await response.json();
     console.log("Prescriptions API response:", result);
 
-    return result.data?.prescriptions || [];
+    // Handle both response formats
+    if (result.data && Array.isArray(result.data.prescriptions)) {
+      return result.data.prescriptions;
+    } else if (Array.isArray(result.prescriptions)) {
+      return result.prescriptions;
+    } else if (Array.isArray(result.data)) {
+      return result.data;
+    } else if (Array.isArray(result)) {
+      return result;
+    }
+
+    console.log("No prescriptions array found in response");
+    return [];
   } catch (error) {
     console.error("Error fetching prescriptions:", error);
     return [];
@@ -49,5 +54,7 @@ export default async function HomePage() {
   }
 
   const initialPrescriptions = await getPrescriptions();
+  console.log("Initial prescriptions count:", initialPrescriptions.length);
+
   return <DashboardClient initialPrescriptions={initialPrescriptions} />;
 }

@@ -1,3 +1,4 @@
+// components/dashboard-client.tsx
 "use client";
 
 import { useState } from "react";
@@ -35,12 +36,30 @@ interface DashboardClientProps {
 
 // API functions
 async function fetchPrescriptions(): Promise<Prescription[]> {
-  const response = await fetch("/api/prescriptions");
-  if (!response.ok) {
+  try {
+    const response = await fetch("/api/prescriptions");
+    if (!response.ok) {
+      throw new Error("Failed to fetch prescriptions");
+    }
+    const result = await response.json();
+
+    // Handle different response formats
+    if (result.data && Array.isArray(result.data.prescriptions)) {
+      return result.data.prescriptions;
+    } else if (Array.isArray(result.prescriptions)) {
+      return result.prescriptions;
+    } else if (Array.isArray(result.data)) {
+      return result.data;
+    } else if (Array.isArray(result)) {
+      return result;
+    }
+
+    console.warn("Unexpected API response format:", result);
+    return [];
+  } catch (error) {
+    console.error("Error fetching prescriptions:", error);
     throw new Error("Failed to fetch prescriptions");
   }
-  const result = await response.json();
-  return result.data?.prescriptions || [];
 }
 
 async function createPrescription(
@@ -57,6 +76,21 @@ async function createPrescription(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to create prescription");
+  }
+
+  return response.json();
+}
+
+async function deletePrescription(
+  prescriptionId: string
+): Promise<{ success: boolean }> {
+  const response = await fetch(`/api/prescriptions/${prescriptionId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete prescription");
   }
 
   return response.json();
@@ -105,6 +139,18 @@ export default function DashboardClient({
     },
   });
 
+  // Mutation for deleting prescriptions
+  const deleteMutation = useMutation({
+    mutationFn: deletePrescription,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
+      setError(null);
+    },
+    onError: (error: Error) => {
+      setError(error.message);
+    },
+  });
+
   const handlePrescriptionGenerated = (result: Prescription) => {
     setPrescription(result);
     setError(null);
@@ -140,14 +186,22 @@ export default function DashboardClient({
     setSelectedPrescription(null);
   };
 
+  const handleDeletePrescription = (prescriptionId: string) => {
+    deleteMutation.mutate(prescriptionId);
+  };
+
   const handleLogout = async () => {
     await signOut();
   };
 
   const isSaving = createMutation.isPending;
+  const isDeleting = deleteMutation.isPending;
 
-  // Get columns with the view handler
-  const columns = useColumns({ onViewDetails: handleViewDetails });
+  // Get columns with the view and delete handlers
+  const columns = useColumns({
+    onViewDetails: handleViewDetails,
+    onDelete: handleDeletePrescription,
+  });
 
   if (!user) {
     return null;

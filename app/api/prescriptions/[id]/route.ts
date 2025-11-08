@@ -100,7 +100,47 @@ export async function PUT(
 
     // Update prescription data
     const updateData: any = {
-      // ... your existing update data
+      // Patient Information
+      patientName: body.patientName,
+      patientAge: body.patientAge,
+      patientGender: body.patientGender,
+      patientPhone: body.patientPhone,
+      patientAddress: body.patientAddress,
+
+      // Medical Information
+      diagnosis: body.diagnosis,
+      chiefComplaint: body.chiefComplaint,
+      historyOfPresentIllness: body.historyOfPresentIllness,
+      physicalExamination: body.physicalExamination,
+      differentialDiagnosis: body.differentialDiagnosis,
+
+      // Vital Signs
+      pulseRate: body.pulseRate,
+      bloodPressure: body.bloodPressure,
+      temperature: body.temperature,
+      respiratoryRate: body.respiratoryRate,
+      oxygenSaturation: body.oxygenSaturation,
+
+      // Medical History
+      allergies: body.allergies,
+      currentMedications: body.currentMedications,
+      pastMedicalHistory: body.pastMedicalHistory,
+      familyHistory: body.familyHistory,
+      socialHistory: body.socialHistory,
+
+      // Treatment Information
+      instructions: body.instructions,
+      followUp: body.followUp,
+      restrictions: body.restrictions,
+
+      // Doctor Information
+      doctorName: body.doctorName,
+      doctorLicenseNumber: body.doctorLicenseNumber,
+      clinicName: body.clinicName,
+      clinicAddress: body.clinicAddress,
+      doctorFree: body.doctorFree,
+
+      // Updated at
       updatedAt: new Date(),
     };
 
@@ -111,45 +151,40 @@ export async function PUT(
       }
     });
 
-    // Update in transaction to handle both prescription and medicines
-    const result = await db.transaction(async (tx) => {
-      // Update prescription
-      const updatedPrescription = await tx
-        .update(prescriptions)
-        .set(updateData)
-        .where(eq(prescriptions.id, id))
-        .returning();
+    // Update prescription (without transaction)
+    const updatedPrescription = await db
+      .update(prescriptions)
+      .set(updateData)
+      .where(eq(prescriptions.id, id))
+      .returning();
 
-      // Update medicines if provided
-      if (body.medicines && Array.isArray(body.medicines)) {
-        // Delete existing medicines
-        await tx.delete(medicines).where(eq(medicines.prescriptionId, id));
+    // Update medicines if provided (without transaction)
+    if (body.medicines && Array.isArray(body.medicines)) {
+      // Delete existing medicines
+      await db.delete(medicines).where(eq(medicines.prescriptionId, id));
 
-        // Insert updated medicines
-        if (body.medicines.length > 0) {
-          const medicinesData = body.medicines.map((med: any) => ({
-            id: uuidv4(),
-            prescriptionId: id,
-            medicine: med.medicine || med.name,
-            dosage: med.dosage,
-            form: med.form,
-            frequency: med.frequency,
-            duration: med.duration,
-            route: med.route,
-            timing: med.timing,
-            withFood: med.withFood || false,
-            instructions: med.instructions,
-            notes: med.notes,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }));
+      // Insert updated medicines
+      if (body.medicines.length > 0) {
+        const medicinesData = body.medicines.map((med: any) => ({
+          id: uuidv4(),
+          prescriptionId: id,
+          medicine: med.medicine || med.name,
+          dosage: med.dosage,
+          form: med.form,
+          frequency: med.frequency,
+          duration: med.duration,
+          route: med.route,
+          timing: med.timing,
+          withFood: med.withFood || false,
+          instructions: med.instructions,
+          notes: med.notes,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
 
-          await tx.insert(medicines).values(medicinesData);
-        }
+        await db.insert(medicines).values(medicinesData);
       }
-
-      return updatedPrescription[0];
-    });
+    }
 
     // Fetch updated prescription with medicines
     const updatedData = await db
@@ -203,24 +238,33 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Delete in transaction to ensure data consistency
-    const result = await db.transaction(async (tx) => {
-      // First delete related medicines
-      await tx.delete(medicines).where(eq(medicines.prescriptionId, id));
+    // First, verify the prescription exists and belongs to the user
+    const existingPrescription = await db
+      .select()
+      .from(prescriptions)
+      .where(and(eq(prescriptions.id, id), eq(prescriptions.userId, userId)))
+      .limit(1);
 
-      // Then delete prescription (ensure user owns it)
-      const deleteResult = await tx
-        .delete(prescriptions)
-        .where(and(eq(prescriptions.id, id), eq(prescriptions.userId, userId)))
-        .returning({ deletedId: prescriptions.id });
-
-      return deleteResult;
-    });
-
-    if (result.length === 0) {
+    if (existingPrescription.length === 0) {
       return NextResponse.json(
         { success: false, error: "نسخه پیدا نشد" },
         { status: 404 }
+      );
+    }
+
+    // Delete related medicines first (without transaction)
+    await db.delete(medicines).where(eq(medicines.prescriptionId, id));
+
+    // Then delete the prescription
+    const deleteResult = await db
+      .delete(prescriptions)
+      .where(and(eq(prescriptions.id, id), eq(prescriptions.userId, userId)))
+      .returning({ deletedId: prescriptions.id });
+
+    if (deleteResult.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "خطا در حذف نسخه" },
+        { status: 500 }
       );
     }
 

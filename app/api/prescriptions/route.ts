@@ -1,3 +1,4 @@
+// app/api/prescriptions/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/index";
 import { prescriptions, medicines } from "@/db/schema";
@@ -5,9 +6,29 @@ import { auth } from "@clerk/nextjs/server";
 import { eq, and, like, or, inArray } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
+// Define the type for incoming medicine data
+interface IncomingMedicine {
+  id?: string;
+  medicine?: string;
+  name?: string;
+  dosage: string;
+  form?: string;
+  frequency?: string;
+  duration?: string;
+  route?: string;
+  timing?: string;
+  withFood?: boolean;
+  instructions?: string;
+  notes?: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
+    console.log("GET /api/prescriptions called");
+
     const { userId } = await auth();
+    console.log("User ID:", userId);
+
     if (!userId) {
       return NextResponse.json(
         { success: false, error: "دسترسی غیرمجاز" },
@@ -17,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const search = searchParams.get("search") || "";
     const skip = (page - 1) * limit;
 
@@ -32,37 +53,83 @@ export async function GET(request: NextRequest) {
       whereCondition = and(whereCondition, searchCondition) as any;
     }
 
-    // Get prescriptions
-    const prescriptionsData = await db
-      .select()
+    console.log("Fetching prescriptions for user:", userId);
+
+    // Get total count first
+    const totalCountResult = await db
+      .select({ id: prescriptions.id })
+      .from(prescriptions)
+      .where(whereCondition);
+
+    const totalCount = totalCountResult.length;
+    console.log("Total prescriptions found:", totalCount);
+
+    if (totalCount === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          prescriptions: [],
+          pagination: {
+            page,
+            limit,
+            totalCount: 0,
+            totalPages: 0,
+          },
+        },
+      });
+    }
+
+    // Get paginated prescription IDs
+    const prescriptionIds = await db
+      .select({ id: prescriptions.id })
       .from(prescriptions)
       .where(whereCondition)
       .orderBy(prescriptions.createdAt)
       .limit(limit)
       .offset(skip);
 
-    // Get medicines for each prescription
-    const prescriptionsWithMedicines = await Promise.all(
-      prescriptionsData.map(async (prescription) => {
-        const medicineData = await db
-          .select()
-          .from(medicines)
-          .where(eq(medicines.prescriptionId, prescription.id));
+    console.log("Paginated prescription IDs:", prescriptionIds.length);
 
-        return {
-          ...prescription,
-          medicines: medicineData,
-        };
+    // Get prescriptions with medicines
+    const prescriptionsData = await db
+      .select({
+        prescription: prescriptions,
+        medicine: medicines,
       })
-    );
-
-    // Get total count
-    const totalCountResult = await db
-      .select()
       .from(prescriptions)
-      .where(whereCondition);
+      .where(
+        inArray(
+          prescriptions.id,
+          prescriptionIds.map((p) => p.id)
+        )
+      )
+      .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))
+      .orderBy(prescriptions.createdAt);
 
-    const totalCount = totalCountResult.length;
+    // Group prescriptions with their medicines
+    const groupedPrescriptions = prescriptionsData.reduce((acc, row) => {
+      const prescription = row.prescription;
+      const medicine = row.medicine;
+
+      if (!acc[prescription.id]) {
+        acc[prescription.id] = {
+          ...prescription,
+          medicines: [],
+        };
+      }
+
+      if (medicine) {
+        acc[prescription.id].medicines.push(medicine);
+      }
+
+      return acc;
+    }, {} as Record<string, any>);
+
+    const prescriptionsWithMedicines = Object.values(groupedPrescriptions);
+    console.log(
+      "Final grouped prescriptions:",
+      prescriptionsWithMedicines.length
+    );
 
     return NextResponse.json({
       success: true,
@@ -87,7 +154,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("POST /api/prescriptions called");
+
     const { userId } = await auth();
+    console.log("User ID:", userId);
+
     if (!userId) {
       return NextResponse.json(
         { success: false, error: "دسترسی غیرمجاز" },
@@ -142,7 +213,9 @@ export async function POST(request: NextRequest) {
         clinicName: body.clinicName || "",
         clinicAddress: body.clinicAddress || "",
         doctorFree: body.doctorFree || "",
-        prescriptionDate: new Date(),
+        prescriptionDate: body.prescriptionDate
+          ? new Date(body.prescriptionDate)
+          : new Date(),
         prescriptionNumber: body.prescriptionNumber || "",
         source: body.source || "manual",
         status: "active",
@@ -155,12 +228,14 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    console.log("Prescription created:", prescription.id);
+
     // Create medicines if provided
     if (body.medicines && Array.isArray(body.medicines)) {
-      for (const med of body.medicines) {
+      const medicinePromises = body.medicines.map((med: IncomingMedicine) => {
         const medicineName = med.medicine || med.name;
         if (medicineName && med.dosage) {
-          await db.insert(medicines).values({
+          return db.insert(medicines).values({
             id: uuidv4(),
             prescriptionId: prescriptionId,
             medicine: medicineName,
@@ -177,19 +252,40 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date(),
           });
         }
-      }
+        return Promise.resolve();
+      });
+
+      await Promise.all(medicinePromises);
+      console.log("Medicines created for prescription:", prescriptionId);
     }
 
     // Fetch the complete prescription with medicines
-    const medicineData = await db
-      .select()
-      .from(medicines)
-      .where(eq(medicines.prescriptionId, prescriptionId));
+    const completeData = await db
+      .select({
+        prescription: prescriptions,
+        medicine: medicines,
+      })
+      .from(prescriptions)
+      .where(eq(prescriptions.id, prescriptionId))
+      .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId));
+
+    const groupedData = completeData.reduce((acc, row) => {
+      if (!acc.prescription) {
+        acc.prescription = row.prescription;
+        acc.medicines = [];
+      }
+      if (row.medicine) {
+        acc.medicines.push(row.medicine);
+      }
+      return acc;
+    }, {} as any);
 
     const prescriptionWithMedicines = {
-      ...prescription,
-      medicines: medicineData,
+      ...groupedData.prescription,
+      medicines: groupedData.medicines || [],
     };
+
+    console.log("Returning complete prescription data");
 
     return NextResponse.json({
       success: true,
