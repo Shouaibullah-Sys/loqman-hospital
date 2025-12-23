@@ -69,6 +69,7 @@ export default function SmartTextForm({
       if (result.success) {
         const aiPrescription: Prescription = {
           id: Date.now().toString(),
+          userId: "", // This should be set by the parent component
           patientName: "",
           patientAge: "",
           patientGender: "",
@@ -76,9 +77,6 @@ export default function SmartTextForm({
           diagnosis: result.prescription.diagnosis,
           medicines: result.prescription.medications,
           chiefComplaint: inputText,
-          historyOfPresentIllness: result.prescription.clinicalNotes,
-          physicalExamination: result.prescription.recommendations.join(", "),
-          differentialDiagnosis: result.prescription.differentialDiagnosis,
           pulseRate: "",
           bloodPressure: "",
           temperature: "",
@@ -88,13 +86,19 @@ export default function SmartTextForm({
           currentMedications: [],
           pastMedicalHistory: "",
           instructions: result.prescription.recommendations.join("\n"),
-          followUp: "در صورت عدم بهبود مراجعه شود",
+          followUp: "Return if no improvement",
           restrictions: result.prescription.warnings.join("\n"),
-          doctorName: "دکتر احمدی",
-          clinicName: "کلینیک تخصصی",
-          prescriptionDate: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          doctorName: "Dr. Ahmad",
+          doctorLicenseNumber: "",
+          clinicName: "Specialized Clinic",
+          clinicAddress: "",
+          doctorFree: "",
+          prescriptionDate: new Date(),
+          prescriptionNumber: "",
+          source: "",
+          status: "active",
+          createdAt: new Date(),
+          updatedAt: new Date(),
           aiConfidence: result.prescription.confidence,
           aiModelUsed: result.prescription.aiModelUsed,
         };
@@ -104,7 +108,7 @@ export default function SmartTextForm({
         throw new Error(result.error || "Failed to generate prescription");
       }
     } catch (error) {
-      onError(error instanceof Error ? error.message : "خطای ناشناخته");
+      onError(error instanceof Error ? error.message : "Unknown error");
     } finally {
       onLoadingChange(false);
       setIsAnalyzing(false);
@@ -150,20 +154,20 @@ export default function SmartTextForm({
             <div className="p-2 bg-primary/10 rounded-lg">
               <Stethoscope className="h-6 w-6 text-primary" />
             </div>
-            نسخه‌نویس هوشمند
+            Smart Prescription Writer
           </CardTitle>
           <Badge variant="secondary" className="bg-green-100 text-green-700">
             <Sparkles className="h-3 w-3 ml-1" />
-            هوش مصنوعی فعال
+            AI Active
           </Badge>
         </div>
         <CardDescription className="text-base text-muted-foreground leading-relaxed">
-          علائم بیمار را وارد کنید تا سیستم با استفاده از هوش مصنوعی پیشرفته،
+          Enter patient symptoms and the system will use advanced AI to generate
           <span className="font-semibold text-card-foreground">
             {" "}
-            تحلیل کامل پزشکی و نسخه مناسب{" "}
+            comprehensive medical analysis and appropriate prescription{" "}
           </span>
-          را تولید کند.
+          .
         </CardDescription>
       </CardHeader>
 
@@ -175,7 +179,7 @@ export default function SmartTextForm({
                 htmlFor="symptoms"
                 className="text-sm font-semibold text-card-foreground"
               >
-                شرح حال بیمار
+                Patient History
               </Label>
               <div className="flex gap-2">
                 <Button
@@ -187,10 +191,10 @@ export default function SmartTextForm({
                   className="flex items-center gap-2"
                 >
                   <Brain className="h-4 w-4" />
-                  تحلیل سریع
+                  Quick Analysis
                 </Button>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full border">
-                  الزامی
+                  Required
                 </span>
               </div>
             </div>
@@ -200,14 +204,14 @@ export default function SmartTextForm({
                 value={inputText}
                 onChange={setInputText}
                 onSuggestionSelect={handleSuggestionSelect}
-                placeholder="مثال: بیمار ۴۵ ساله با علائم سرفه خشک، تب ۳۸ درجه و گلودرد مراجعه کرده است. سابقه آلرژی به پنی‌سیلین دارد..."
+                placeholder="Example: 45-year-old patient with dry cough, fever 38°C and sore throat. History of penicillin allergy..."
                 className="min-h-[120px] resize-vertical border-input bg-background/80 focus:border-primary focus:ring-primary"
               />
 
               {inputText.length > 0 && (
                 <div className="absolute bottom-2 left-2">
                   <Badge variant="outline" className="text-xs bg-background/90">
-                    {inputText.length} کاراکتر
+                    {inputText.length} characters
                   </Badge>
                 </div>
               )}
@@ -220,13 +224,18 @@ export default function SmartTextForm({
               <Sparkles className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
               <div className="space-y-2">
                 <p className="text-sm font-medium text-blue-800">
-                  قابلیت‌های هوش مصنوعی:
+                  AI Capabilities:
                 </p>
                 <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                  <li>تحلیل خودکار علائم و تشخیص احتمالی</li>
-                  <li>پیشنهاد داروهای مناسب بر اساس آخرین راهنماهای پزشکی</li>
-                  <li>توجه به تداخلات دارویی و contraindications</li>
-                  <li>تولید نسخه استاندارد پزشکی</li>
+                  <li>Automatic symptom analysis and probable diagnosis</li>
+                  <li>
+                    Suitable medication recommendations based on latest medical
+                    guidelines
+                  </li>
+                  <li>
+                    Consideration of drug interactions and contraindications
+                  </li>
+                  <li>Generation of standard medical prescription</li>
                 </ul>
               </div>
             </div>
@@ -243,12 +252,12 @@ export default function SmartTextForm({
               {loading || isAnalyzing ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span>در حال تحلیل و تولید نسخه...</span>
+                  <span>Analyzing and generating prescription...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="h-5 w-5" />
-                  <span>تولید نسخه هوشمند</span>
+                  <span>Generate Smart Prescription</span>
                 </>
               )}
             </Button>
@@ -262,7 +271,7 @@ export default function SmartTextForm({
               size="lg"
             >
               <Eraser className="h-4 w-4" />
-              پاک کردن
+              Clear
             </Button>
           </div>
         </form>
@@ -272,9 +281,9 @@ export default function SmartTextForm({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <Brain className="h-3 w-3" />
-              <span>پشتیبانی از مدل‌های پزشکی BioGPT و BioMedLM</span>
+              <span>Support for medical models BioGPT and BioMedLM</span>
             </div>
-            <span>نسخه هوش مصنوعی ۱.۰</span>
+            <span>AI Version 1.0</span>
           </div>
         </div>
       </CardContent>

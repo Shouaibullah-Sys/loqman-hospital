@@ -1,6 +1,6 @@
 // app/api/prescriptions/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/index";
+import { db, dbQuery, checkDatabaseConnection } from "@/db/index";
 import { prescriptions, medicines } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";

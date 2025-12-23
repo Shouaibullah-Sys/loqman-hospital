@@ -1,11 +1,11 @@
 // components/dashboard-client.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser, useClerk } from "@clerk/nextjs";
 import SmartTextForm from "./SmartTextForm";
-import QuickButtons from "./QuickButtons";
+import PresetsTab from "./presets-tab";
 import ErrorAlert from "./ErrorAlert";
 import { EnhancedPrescriptionForm } from "./enhanced-prescription-form";
 import { PrescriptionDetails } from "./prescription-details";
@@ -17,11 +17,31 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { DataTable } from "@/components/prescriptions/data-table";
 import { useColumns } from "@/components/prescriptions/columns";
 import { Button } from "@/components/ui/button";
-import { History, Plus, X, DollarSign, LogOut, User } from "lucide-react";
+import {
+  History,
+  Plus,
+  X,
+  DollarSign,
+  LogOut,
+  User,
+  FileText,
+  Stethoscope,
+  Clock,
+  Calendar,
+  TrendingUp,
+  Activity,
+  Shield,
+  Database,
+  Bell,
+  Settings,
+  HelpCircle,
+  Menu,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,9 +49,30 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface DashboardClientProps {
   initialPrescriptions: Prescription[];
+  databaseStatus?: "connected" | "disconnected" | "error" | "unknown";
 }
 
 // API functions
@@ -39,11 +80,24 @@ async function fetchPrescriptions(): Promise<Prescription[]> {
   try {
     const response = await fetch("/api/prescriptions");
     if (!response.ok) {
-      throw new Error("Failed to fetch prescriptions");
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.error || `Failed to fetch prescriptions (${response.status})`;
+
+      if (
+        errorMessage.includes("database") ||
+        errorMessage.includes("connection") ||
+        errorMessage.includes("timeout")
+      ) {
+        throw new Error(
+          "Database connection is currently unavailable. Please try again later."
+        );
+      }
+
+      throw new Error(errorMessage);
     }
     const result = await response.json();
 
-    // Handle different response formats
     if (result.data && Array.isArray(result.data.prescriptions)) {
       return result.data.prescriptions;
     } else if (Array.isArray(result.prescriptions)) {
@@ -58,6 +112,16 @@ async function fetchPrescriptions(): Promise<Prescription[]> {
     return [];
   } catch (error) {
     console.error("Error fetching prescriptions:", error);
+
+    if (error instanceof Error) {
+      if (error.message.includes("fetch")) {
+        throw new Error(
+          "Unable to connect to the server. Please check your internet connection."
+        );
+      }
+      throw error;
+    }
+
     throw new Error("Failed to fetch prescriptions");
   }
 }
@@ -65,39 +129,96 @@ async function fetchPrescriptions(): Promise<Prescription[]> {
 async function createPrescription(
   prescription: Prescription
 ): Promise<{ success: boolean; id: string }> {
-  const response = await fetch("/api/prescriptions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(prescription),
-  });
+  try {
+    const response = await fetch("/api/prescriptions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(prescription),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create prescription");
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const errorMessage =
+        error.error || `Failed to create prescription (${response.status})`;
+
+      if (
+        errorMessage.includes("database") ||
+        errorMessage.includes("connection") ||
+        errorMessage.includes("timeout")
+      ) {
+        throw new Error(
+          "Database connection is currently unavailable. Please try again later."
+        );
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error creating prescription:", error);
+
+    if (error instanceof Error) {
+      if (error.message.includes("fetch")) {
+        throw new Error(
+          "Unable to connect to the server. Please check your internet connection."
+        );
+      }
+      throw error;
+    }
+
+    throw new Error("Failed to create prescription");
   }
-
-  return response.json();
 }
 
 async function deletePrescription(
   prescriptionId: string
 ): Promise<{ success: boolean }> {
-  const response = await fetch(`/api/prescriptions/${prescriptionId}`, {
-    method: "DELETE",
-  });
+  try {
+    const response = await fetch(`/api/prescriptions/${prescriptionId}`, {
+      method: "DELETE",
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to delete prescription");
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const errorMessage =
+        error.error || `Failed to delete prescription (${response.status})`;
+
+      if (
+        errorMessage.includes("database") ||
+        errorMessage.includes("connection") ||
+        errorMessage.includes("timeout")
+      ) {
+        throw new Error(
+          "Database connection is currently unavailable. Please try again later."
+        );
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error deleting prescription:", error);
+
+    if (error instanceof Error) {
+      if (error.message.includes("fetch")) {
+        throw new Error(
+          "Unable to connect to the server. Please check your internet connection."
+        );
+      }
+      throw error;
+    }
+
+    throw new Error("Failed to delete prescription");
   }
-
-  return response.json();
 }
 
 export default function DashboardClient({
   initialPrescriptions,
+  databaseStatus = "unknown",
 }: DashboardClientProps) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -106,24 +227,27 @@ export default function DashboardClient({
     useState<Prescription | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"create" | "history" | "amounts">(
-    "create"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "create" | "presets" | "history" | "amounts"
+  >("create");
   const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
+  const [notifications, setNotifications] = useState<number>(3);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
-  // TanStack Query for prescriptions with initial data from server
+  // TanStack Query for prescriptions
   const {
     data: prescriptions = initialPrescriptions,
     isLoading: prescriptionsLoading,
     error: prescriptionsError,
+    refetch: refetchPrescriptions,
   } = useQuery({
     queryKey: ["prescriptions"],
     queryFn: fetchPrescriptions,
     staleTime: 5 * 60 * 1000,
     initialData: initialPrescriptions,
-    refetchOnMount: false, // Disable refetch on mount since we have initial data
+    refetchOnMount: false,
   });
 
   // Mutation for saving prescriptions
@@ -151,6 +275,21 @@ export default function DashboardClient({
       setError(error.message);
     },
   });
+
+  // Calculate statistics
+  const todayPrescriptions = prescriptions.filter((p) => {
+    const today = new Date().toDateString();
+    return new Date(p.createdAt).toDateString() === today;
+  }).length;
+
+  const monthlyPrescriptions = prescriptions.filter((p) => {
+    const now = new Date();
+    const prescriptionDate = new Date(p.createdAt);
+    return (
+      prescriptionDate.getMonth() === now.getMonth() &&
+      prescriptionDate.getFullYear() === now.getFullYear()
+    );
+  }).length;
 
   const handlePrescriptionGenerated = (result: Prescription) => {
     setPrescription(result);
@@ -198,213 +337,882 @@ export default function DashboardClient({
   const isSaving = createMutation.isPending;
   const isDeleting = deleteMutation.isPending;
 
-  // Get columns with the view and delete handlers
   const columns = useColumns({
     onViewDetails: handleViewDetails,
     onDelete: handleDeletePrescription,
   });
+
+  // Get user initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   if (!user) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-40 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <User className="h-5 w-5 text-primary" />
+    <TooltipProvider>
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+        {/* Header */}
+        <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md supports-backdrop-filter:bg-card/60">
+          <div className="container flex h-16 items-center justify-between px-4">
+            {/* Mobile Menu Button */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Stethoscope className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold">سیستم نسخه‌پیچی</h2>
+                        <p className="text-xs text-muted-foreground">
+                          پلتفرم هوشمند
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 mb-8">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5">
+                        <Avatar className="h-10 w-10 border-2 border-primary/20">
+                          <AvatarImage src={user.imageUrl} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {getInitials(user.fullName || "کاربر")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {user.fullName || "کاربر سیستم"}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {user.primaryEmailAddress?.emailAddress}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            نسخه‌های امروز
+                          </span>
+                          <span className="font-medium">
+                            {todayPrescriptions}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            نسخه‌های این ماه
+                          </span>
+                          <span className="font-medium">
+                            {monthlyPrescriptions}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <nav className="space-y-2">
+                        <Button
+                          variant={activeTab === "create" ? "default" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setActiveTab("create");
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 ml-2" />
+                          ایجاد نسخه جدید
+                        </Button>
+                        <Button
+                          variant={
+                            activeTab === "presets" ? "default" : "ghost"
+                          }
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setActiveTab("presets");
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          <FileText className="h-4 w-4 ml-2" />
+                          قالب‌های پزشکی
+                        </Button>
+                        <Button
+                          variant={
+                            activeTab === "history" ? "default" : "ghost"
+                          }
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setActiveTab("history");
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          <History className="h-4 w-4 ml-2" />
+                          تاریخچه نسخه‌ها
+                        </Button>
+                        <Button
+                          variant={
+                            activeTab === "amounts" ? "default" : "ghost"
+                          }
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setActiveTab("amounts");
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          <DollarSign className="h-4 w-4 ml-2" />
+                          مبالغ ویزیت
+                        </Button>
+                      </nav>
+                    </div>
+
+                    <div className="pt-6 border-t">
+                      <div className="space-y-3">
+                        <ThemeToggle />
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            handleLogout();
+                          }}
+                        >
+                          <LogOut className="h-4 w-4 ml-2" />
+                          خروج از سیستم
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Logo */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
+                  <Stethoscope className="h-6 w-6 text-primary" />
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                    سیستم نسخه نویسی پزشکی
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    پلتفرم هوشمند مدیریت نسخه‌های پزشکی
+                  </p>
+                </div>
+                <div className="sm:hidden">
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                    نسخه نویسی
+                  </h1>
+                  <p className="text-xs text-muted-foreground">سیستم پزشکی</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold">سیستم نسخه‌پیچی پزشکی</h1>
-                <p className="text-sm text-muted-foreground">
-                  کاربر:{" "}
-                  {user.fullName ||
-                    user.primaryEmailAddress?.emailAddress ||
-                    "کاربر سیستم"}
-                </p>
+            </div>
+
+            {/* Desktop Navigation and Stats */}
+            <div className="hidden lg:flex items-center gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
+                  <Activity className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">
+                    {todayPrescriptions} نسخه امروز
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {monthlyPrescriptions} این ماه
+                  </span>
+                </div>
               </div>
+
+              <Separator orientation="vertical" className="h-8" />
+
+              {/* User Actions */}
+              <div className="flex items-center gap-3">
+                <ThemeToggle />
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                      <Bell className="h-5 w-5" />
+                      {notifications > 0 && (
+                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                          {notifications}
+                        </span>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>اعلانات</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>تنظیمات</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <HelpCircle className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>راهنما</TooltipContent>
+                </Tooltip>
+
+                <div className="flex items-center gap-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="relative h-8 w-8 rounded-full p-0"
+                      >
+                        <Avatar className="h-8 w-8 border-2 border-primary/20">
+                          <AvatarImage src={user.imageUrl} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {getInitials(user.fullName || "کاربر")}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">
+                            {user.fullName || "کاربر سیستم"}
+                          </p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user.primaryEmailAddress?.emailAddress}
+                          </p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <User className="h-4 w-4 ml-2" />
+                        پروفایل
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Settings className="h-4 w-4 ml-2" />
+                        تنظیمات
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <HelpCircle className="h-4 w-4 ml-2" />
+                        راهنما
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handleLogout}
+                        className="text-destructive"
+                      >
+                        <LogOut className="h-4 w-4 ml-2" />
+                        خروج
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <div className="hidden md:block">
+                    <p className="text-sm font-medium">
+                      {user.fullName?.split(" ")[0] || "کاربر"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">پزشک</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile User Actions */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {notifications > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+                    {notifications}
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
+        </header>
 
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              خروج
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        {/* Header Tabs */}
-        <Card className="mb-8">
-          <CardContent className="p-0">
-            <div className="flex border-b">
-              <Button
-                variant={activeTab === "create" ? "default" : "ghost"}
-                onClick={() => setActiveTab("create")}
-                className="flex items-center gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-6 py-4 h-auto"
-                data-state={activeTab === "create" ? "active" : "inactive"}
-              >
-                <Plus className="h-4 w-4" />
-                <div className="text-right">
-                  <div className="font-semibold">ایجاد نسخه جدید</div>
-                  <div className="text-xs text-muted-foreground">
-                    نسخه هوشمند و سریع
-                  </div>
+        {/* Database Status Banner */}
+        {databaseStatus !== "connected" && (
+          <div
+            className={`
+            ${
+              databaseStatus === "error"
+                ? "bg-destructive/10 border-destructive/20 text-destructive"
+                : "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200"
+            } border-b
+          `}
+          >
+            <div className="container px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`
+                    h-2 w-2 rounded-full animate-pulse
+                    ${
+                      databaseStatus === "error"
+                        ? "bg-destructive"
+                        : "bg-yellow-500"
+                    }
+                  `}
+                  ></div>
+                  <span className="text-sm font-medium">
+                    {databaseStatus === "disconnected" &&
+                      "اتصال پایگاه داده قطع شده است - برخی امکانات محدود هستند"}
+                    {databaseStatus === "error" &&
+                      "خطا در اتصال به پایگاه داده - لطفاً صفحه را refresh کنید"}
+                    {databaseStatus === "unknown" &&
+                      "در حال بررسی اتصال پایگاه داده..."}
+                  </span>
                 </div>
-              </Button>
-              <Button
-                variant={activeTab === "history" ? "default" : "ghost"}
-                onClick={() => setActiveTab("history")}
-                className="flex items-center gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-6 py-4 h-auto"
-                data-state={activeTab === "history" ? "active" : "inactive"}
-              >
-                <History className="h-4 w-4" />
-                <div className="text-right">
-                  <div className="font-semibold">تاریخچه نسخه‌ها</div>
-                  <div className="text-xs text-muted-foreground">
-                    {prescriptions.length} نسخه ذخیره شده
-                  </div>
-                </div>
-              </Button>
-              <Button
-                variant={activeTab === "amounts" ? "default" : "ghost"}
-                onClick={() => setActiveTab("amounts")}
-                className="flex items-center gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-6 py-4 h-auto"
-                data-state={activeTab === "amounts" ? "active" : "inactive"}
-              >
-                <DollarSign className="h-4 w-4" />
-                <div className="text-right">
-                  <div className="font-semibold">مبالغ ویزیت</div>
-                  <div className="text-xs text-muted-foreground">
-                    مدیریت تعرفه‌ها
-                  </div>
-                </div>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {activeTab === "create" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Quick Presets Sidebar */}
-            <div className="lg:col-span-1">
-              <QuickButtons
-                onPresetSelect={handleQuickPreset}
-                onError={handleError}
-              />
-            </div>
-
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {!prescription ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-2xl font-bold">
-                      نسخه‌نویس هوشمند
-                    </CardTitle>
-                    <CardDescription>
-                      علائم بیمار یا متن نسخه را وارد کنید تا سیستم به صورت
-                      هوشمند نسخه کامل را تولید کند.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <SmartTextForm
-                      onPrescriptionGenerated={handlePrescriptionGenerated}
-                      onLoadingChange={setLoading}
-                      onError={handleError}
-                      loading={loading}
-                    />
-                  </CardContent>
-                </Card>
-              ) : (
-                <EnhancedPrescriptionForm
-                  prescription={prescription}
-                  onSave={handleSavePrescription}
-                  onCancel={handleCancelEdit}
-                  isSaving={isSaving}
-                />
-              )}
-
-              {error && (
-                <ErrorAlert message={error} onDismiss={() => setError(null)} />
-              )}
+                <Button variant="ghost" size="sm" className="h-7 px-2">
+                  <Database className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           </div>
         )}
 
-        {activeTab === "history" && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>تاریخچه نسخه‌ها</CardTitle>
-                <CardDescription>
-                  لیست تمام نسخه‌های ذخیره شده در پایگاه داده. برای مشاهده
-                  جزئیات کامل هر نسخه روی دکمه "مشاهده جزئیات" کلیک کنید.
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6 sm:py-8">
+          {/* Dashboard Overview Cards - Mobile Optimized */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Plus className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm sm:text-base">ایجاد نسخه جدید</span>
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  نسخه‌نویس هوشمند با AI
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {prescriptionsLoading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary ml-2"></div>
-                    <span>در حال بارگذاری...</span>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+                  علائم بیمار را وارد کنید تا سیستم به صورت هوشمند نسخه کامل را
+                  تولید کند.
+                </p>
+                <Button
+                  onClick={() => setActiveTab("create")}
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-xs sm:text-sm"
+                  size="sm"
+                >
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                  شروع کنید
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-accent/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="p-2 bg-accent/10 rounded-lg">
+                    <Activity className="h-4 w-4 text-accent-foreground" />
                   </div>
-                ) : prescriptionsError ? (
-                  <ErrorAlert
-                    message="خطا در بارگذاری تاریخچه نسخه‌ها"
-                    onDismiss={() =>
-                      queryClient.invalidateQueries({
-                        queryKey: ["prescriptions"],
-                      })
-                    }
-                  />
-                ) : prescriptions.length > 0 ? (
-                  <DataTable columns={columns} data={prescriptions} />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <div className="mb-4">
-                      <History className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  <span className="text-sm sm:text-base">آمار سریع</span>
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  عملکرد امروز
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-xs sm:text-sm mb-1">
+                      <span className="text-muted-foreground">
+                        نسخه‌های امروز
+                      </span>
+                      <span className="font-medium">{todayPrescriptions}</span>
                     </div>
-                    <p className="mb-2">هنوز هیچ نسخه‌ای ثبت نشده است.</p>
-                    <Button
-                      variant="default"
-                      onClick={() => setActiveTab("create")}
-                      className="flex items-center gap-2 mx-auto"
-                    >
-                      <Plus className="h-4 w-4" />
-                      ایجاد اولین نسخه
-                    </Button>
+                    <Progress
+                      value={(todayPrescriptions / 50) * 100}
+                      className="h-1.5 sm:h-2"
+                    />
                   </div>
-                )}
+                  <div>
+                    <div className="flex justify-between text-xs sm:text-sm mb-1">
+                      <span className="text-muted-foreground">
+                        نسخه‌های این ماه
+                      </span>
+                      <span className="font-medium">
+                        {monthlyPrescriptions}
+                      </span>
+                    </div>
+                    <Progress
+                      value={(monthlyPrescriptions / 300) * 100}
+                      className="h-1.5 sm:h-2"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-secondary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="p-2 bg-secondary/10 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-secondary-foreground" />
+                  </div>
+                  <span className="text-sm sm:text-base">دسترسی سریع</span>
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  امکانات پرکاربرد
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("presets")}
+                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
+                  >
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] sm:text-xs">
+                      قالب‌های پزشکی
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("history")}
+                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
+                  >
+                    <History className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] sm:text-xs">تاریخچه</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("amounts")}
+                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
+                  >
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] sm:text-xs">بل ها</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
+                  >
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] sm:text-xs">بیمه‌ها</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
-        )}
 
-        {activeTab === "amounts" && <PrescriptionAmount />}
+          {/* Main Tabs - Fixed for Mobile & Dark Mode */}
+          <Card className="mb-6 sm:mb-8 border-border/50 shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as any)}
+                className="w-full"
+              >
+                <TabsList className="w-full justify-start h-auto p-0 border-b bg-transparent overflow-x-auto flex-nowrap scrollbar-hide">
+                  <TabsTrigger
+                    value="create"
+                    className="
+                      relative 
+                      data-[state=active]:border-b-2 
+                      data-[state=active]:border-primary 
+                      data-[state=active]:bg-primary/5
+                      rounded-none 
+                      px-3 sm:px-4 md:px-6 
+                      py-3 sm:py-4
+                      h-auto 
+                      text-xs sm:text-sm
+                      flex-shrink-0
+                      flex items-center gap-1 sm:gap-2
+                      text-muted-foreground 
+                      data-[state=active]:text-primary
+                      dark:text-gray-300
+                      dark:data-[state=active]:text-primary
+                      dark:data-[state=active]:bg-primary/10
+                      transition-colors duration-200
+                      hover:text-foreground dark:hover:text-white
+                    "
+                  >
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                    <div className="text-right">
+                      <div className="font-medium sm:font-semibold">
+                        ایجاد نسخه
+                      </div>
+                      <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
+                        نسخه هوشمند
+                      </div>
+                    </div>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="presets"
+                    className="
+                      relative 
+                      data-[state=active]:border-b-2 
+                      data-[state=active]:border-primary 
+                      data-[state=active]:bg-primary/5
+                      rounded-none 
+                      px-3 sm:px-4 md:px-6 
+                      py-3 sm:py-4
+                      h-auto 
+                      text-xs sm:text-sm
+                      flex-shrink-0
+                      flex items-center gap-1 sm:gap-2
+                      text-muted-foreground 
+                      data-[state=active]:text-primary
+                      dark:text-gray-300
+                      dark:data-[state=active]:text-primary
+                      dark:data-[state=active]:bg-primary/10
+                      transition-colors duration-200
+                      hover:text-foreground dark:hover:text-white
+                    "
+                  >
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                    <div className="text-right">
+                      <div className="font-medium sm:font-semibold">
+                        قالب‌ها
+                      </div>
+                      <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
+                        قالب‌های آماده
+                      </div>
+                    </div>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="history"
+                    className="
+                      relative 
+                      data-[state=active]:text-primary 
+                      data-[state=active]:border-b-2 
+                      data-[state=active]:border-primary 
+                      data-[state=active]:bg-primary/5
+                      rounded-none 
+                      px-3 sm:px-4 md:px-6 
+                      py-3 sm:py-4
+                      h-auto 
+                      text-xs sm:text-sm
+                      flex-shrink-0
+                      flex items-center gap-1 sm:gap-2
+                      text-muted-foreground
+                      dark:text-gray-300
+                      dark:data-[state=active]:text-primary
+                      dark:data-[state=active]:bg-primary/10
+                      transition-colors duration-200
+                      hover:text-foreground dark:hover:text-white
+                    "
+                  >
+                    <History className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                    <div className="text-right">
+                      <div className="font-medium sm:font-semibold">
+                        تاریخچه
+                      </div>
+                      <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
+                        {prescriptions.length} نسخه
+                      </div>
+                    </div>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="amounts"
+                    className="
+                      relative 
+                      data-[state=active]:text-primary 
+                      data-[state=active]:border-b-2 
+                      data-[state=active]:border-primary 
+                      data-[state=active]:bg-primary/5
+                      rounded-none 
+                      px-3 sm:px-4 md:px-6 
+                      py-3 sm:py-4
+                      h-auto 
+                      text-xs sm:text-sm
+                      flex-shrink-0
+                      flex items-center gap-1 sm:gap-2
+                      text-muted-foreground
+                      dark:text-gray-300
+                      dark:data-[state=active]:text-primary
+                      dark:data-[state=active]:bg-primary/10
+                      transition-colors duration-200
+                      hover:text-foreground dark:hover:text-white
+                    "
+                  >
+                    <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                    <div className="text-right">
+                      <div className="font-medium sm:font-semibold">بل ها </div>
+                      <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
+                        مدیریت مبالغ
+                      </div>
+                    </div>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="create" className="p-4 sm:p-6">
+                  <div className="space-y-6">
+                    {!prescription ? (
+                      <Card className="border-primary/20">
+                        <CardHeader>
+                          <CardTitle className="text-xl sm:text-2xl font-bold flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                            </div>
+                            <div>
+                              <span>نسخه‌نویس هوشمند</span>
+                              <Badge
+                                variant="outline"
+                                className="mr-2 bg-primary/5 text-primary border-primary/20"
+                              >
+                                قدرت گرفته از AI
+                              </Badge>
+                            </div>
+                          </CardTitle>
+                          <CardDescription className="text-sm sm:text-base">
+                            علائم بیمار یا متن نسخه را وارد کنید تا سیستم به
+                            صورت هوشمند نسخه کامل را تولید کند. از هوش مصنوعی
+                            برای تشخیص دقیق‌تر استفاده می‌شود.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <SmartTextForm
+                            onPrescriptionGenerated={
+                              handlePrescriptionGenerated
+                            }
+                            onLoadingChange={setLoading}
+                            onError={handleError}
+                            loading={loading}
+                          />
+                        </CardContent>
+                        <CardFooter className="border-t pt-6">
+                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                            <Shield className="h-3 w-3 sm:h-4 sm:w-4 ml-2" />
+                            <span>
+                              تمامی اطلاعات بیماران به صورت امن ذخیره می‌شود
+                            </span>
+                          </div>
+                        </CardFooter>
+                      </Card>
+                    ) : (
+                      <EnhancedPrescriptionForm
+                        prescription={prescription}
+                        onSave={handleSavePrescription}
+                        onCancel={handleCancelEdit}
+                        isSaving={isSaving}
+                      />
+                    )}
+
+                    {error && (
+                      <ErrorAlert
+                        message={error}
+                        onDismiss={() => setError(null)}
+                      />
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="presets" className="p-4 sm:p-6">
+                  <PresetsTab
+                    onPresetSelect={handleQuickPreset}
+                    onError={handleError}
+                  />
+                </TabsContent>
+
+                <TabsContent value="history" className="p-4 sm:p-6">
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          تاریخچه نسخه‌ها
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          لیست تمام نسخه‌های ذخیره شده در پایگاه داده
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => refetchPrescriptions()}
+                          className="flex-1 sm:flex-none"
+                        >
+                          <Clock className="h-4 w-4 ml-2" />
+                          بروزرسانی
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => setActiveTab("create")}
+                          className="flex-1 sm:flex-none"
+                        >
+                          <Plus className="h-4 w-4 ml-2" />
+                          نسخه جدید
+                        </Button>
+                      </div>
+                    </div>
+
+                    {prescriptionsLoading ? (
+                      <Card>
+                        <CardContent className="flex justify-center items-center py-12">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                            <p className="text-muted-foreground">
+                              در حال بارگذاری نسخه‌ها...
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : prescriptionsError ? (
+                      <ErrorAlert
+                        message="خطا در بارگذاری تاریخچه نسخه‌ها"
+                        onDismiss={() =>
+                          queryClient.invalidateQueries({
+                            queryKey: ["prescriptions"],
+                          })
+                        }
+                      />
+                    ) : prescriptions.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <Card>
+                          <CardContent className="p-0">
+                            <DataTable columns={columns} data={prescriptions} />
+                          </CardContent>
+                        </Card>
+                      </div>
+                    ) : (
+                      <Card>
+                        <CardContent className="text-center py-12">
+                          <div className="mb-6">
+                            <History className="h-16 w-16 mx-auto text-muted-foreground/30" />
+                          </div>
+                          <h4 className="text-lg font-medium mb-2">
+                            هنوز هیچ نسخه‌ای ثبت نشده است
+                          </h4>
+                          <p className="text-muted-foreground mb-6">
+                            برای شروع، یک نسخه جدید ایجاد کنید یا از قالب‌های
+                            آماده استفاده کنید.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <Button
+                              variant="default"
+                              onClick={() => setActiveTab("create")}
+                              className="flex items-center gap-2"
+                            >
+                              <Plus className="h-4 w-4" />
+                              ایجاد اولین نسخه
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setActiveTab("presets")}
+                            >
+                              مشاهده قالب‌ها
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="amounts" className="p-4 sm:p-6">
+                  <PrescriptionAmount />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          {prescriptions.length > 0 && (
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  فعالیت‌های اخیر
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  آخرین نسخه‌های ثبت شده
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {prescriptions.slice(0, 3).map((prescription) => (
+                    <div
+                      key={prescription.id}
+                      className="flex items-center justify-between p-3 sm:p-4 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => handleViewDetails(prescription)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {prescription.patientName || "بدون نام"}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {prescription.diagnosis?.slice(0, 40)}...
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs sm:text-sm font-medium">
+                          {new Date(prescription.createdAt).toLocaleDateString(
+                            "fa-IR"
+                          )}
+                        </p>
+                        <Badge variant="outline" className="mt-1 text-xs">
+                          {prescription.medicines?.length || 0} دارو
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setActiveTab("history")}
+                  size="sm"
+                >
+                  مشاهده تمامی نسخه‌ها
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+        </div>
 
         {/* Prescription Details Dialog */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>جزئیات کامل نسخه</span>
+              <DialogTitle className="flex items-center justify-between text-lg sm:text-xl">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <span>جزئیات کامل نسخه</span>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleCloseDetails}
+                  className="rounded-full h-8 w-8"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -418,7 +1226,82 @@ export default function DashboardClient({
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Footer */}
+        <footer className="mt-8 sm:mt-12 border-t bg-card">
+          <div className="container px-4 py-6 sm:py-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+              <div>
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                  <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <span className="text-base sm:text-lg font-bold">
+                    سیستم نسخه‌پیچی
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  پلتفرم هوشمند مدیریت نسخه‌های پزشکی با قابلیت‌های پیشرفته
+                </p>
+              </div>
+              <div>
+                <h4 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base">
+                  امکانات
+                </h4>
+                <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                  <li>نسخه‌نویس هوشمند</li>
+                  <li>قالب‌های آماده پزشکی</li>
+                  <li>مدیریت تاریخچه نسخه‌ها</li>
+                  <li>مدیریت تعرفه‌های ویزیت</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base">
+                  پشتیبانی
+                </h4>
+                <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                  <li>راهنمای استفاده</li>
+                  <li>پرسش‌های متداول</li>
+                  <li>تماس با پشتیبانی</li>
+                  <li>گزارش مشکل</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base">
+                  امنیت
+                </h4>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+                  تمامی اطلاعات بیماران با بالاترین سطح امنیتی ذخیره می‌شود.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium">
+                    منطبق با HIPAA
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Separator className="my-4 sm:my-6" />
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  © {new Date().getFullYear()} سیستم نویسی آنلاین. تمامی حقوق
+                  محفوظ است.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Developed by Rahimi Solution Team
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="text-xs">
+                  نسخه ۱.۰.۰
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  آنلاین
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

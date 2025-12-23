@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -61,10 +60,10 @@ export function EditablePrescriptionTable({
         chiefComplaint: "",
         diagnosis: "",
         prescription: [],
-        doctorName: "دکتر احمدی",
-        clinicName: "کلینیک تخصصی",
-        instructions: "استراحت کافی و مصرف منظم داروها",
-        followUp: "در صورت عدم بهبود پس از 3 روز مراجعه شود",
+        doctorName: "Dr. Ahmad",
+        clinicName: "Specialized Clinic",
+        instructions: "Adequate rest and regular medication intake",
+        followUp: "Return if no improvement after 3 days",
       },
 
       // Merge with provided prescription (this will override defaults)
@@ -144,17 +143,17 @@ export function EditablePrescriptionTable({
   const handleSave = async () => {
     // Validate required fields
     if (!editablePrescription.patientName.trim()) {
-      alert("لطفاً نام بیمار را وارد کنید");
+      alert("Please enter patient name");
       return;
     }
 
     if (!editablePrescription.chiefComplaint?.trim()) {
-      alert("لطفاً شکایت اصلی بیمار را وارد کنید");
+      alert("Please enter patient's chief complaint");
       return;
     }
 
     if (!editablePrescription.diagnosis.trim()) {
-      alert("لطفاً تشخیص بیماری را وارد کنید");
+      alert("Please enter patient diagnosis");
       return;
     }
 
@@ -167,12 +166,12 @@ export function EditablePrescriptionTable({
     );
 
     if (hasEmptyMedicines) {
-      alert("لطفاً تمام فیلدهای ضروری داروها را پر کنید");
+      alert("Please fill all required medication fields");
       return;
     }
 
     if (editablePrescription.medicines.length === 0) {
-      alert("حداقل یک دارو باید به نسخه اضافه شود");
+      alert("At least one medication must be added to the prescription");
       return;
     }
 
@@ -181,7 +180,7 @@ export function EditablePrescriptionTable({
 
   const handleDelete = async () => {
     if (editablePrescription.id && onDelete) {
-      if (confirm("آیا از حذف این نسخه اطمینان دارید؟")) {
+      if (confirm("Are you sure you want to delete this prescription?")) {
         await onDelete(editablePrescription.id);
       }
     }
@@ -191,7 +190,7 @@ export function EditablePrescriptionTable({
     const duplicated = {
       ...editablePrescription,
       id: Math.random().toString(36).substr(2, 9),
-      patientName: `کپی از ${editablePrescription.patientName}`,
+      patientName: `Copy of ${editablePrescription.patientName}`,
       prescriptionNumber: undefined,
       medicines: editablePrescription.medicines.map((med) => ({
         ...med,
@@ -212,7 +211,7 @@ export function EditablePrescriptionTable({
           className="flex items-center gap-2"
         >
           <User className="h-4 w-4" />
-          اطلاعات بیمار
+          Patient Information
         </Button>
         <Button
           variant={activeSection === "clinical" ? "default" : "ghost"}
@@ -220,7 +219,7 @@ export function EditablePrescriptionTable({
           className="flex items-center gap-2"
         >
           <Stethoscope className="h-4 w-4" />
-          معاینات بالینی
+          Clinical Examinations
         </Button>
         <Button
           variant={activeSection === "medicines" ? "default" : "ghost"}
@@ -228,7 +227,7 @@ export function EditablePrescriptionTable({
           className="flex items-center gap-2"
         >
           <Pill className="h-4 w-4" />
-          داروها ({editablePrescription.medicines.length})
+          Medications ({editablePrescription.medicines.length})
         </Button>
         <Button
           variant={activeSection === "instructions" ? "default" : "ghost"}
@@ -236,7 +235,7 @@ export function EditablePrescriptionTable({
           className="flex items-center gap-2"
         >
           <FileText className="h-4 w-4" />
-          دستورات و پیگیری
+          Instructions & Follow-up
         </Button>
       </div>
 
@@ -246,7 +245,9 @@ export function EditablePrescriptionTable({
             <div className="flex items-center gap-2">
               <Edit3 className="h-5 w-5" />
               <CardTitle>
-                {mode === "create" ? "ایجاد نسخه پزشکی" : "ویرایش نسخه پزشکی"}
+                {mode === "create"
+                  ? "Create Medical Prescription"
+                  : "Edit Medical Prescription"}
               </CardTitle>
             </div>
             <div className="flex gap-2">
@@ -259,7 +260,7 @@ export function EditablePrescriptionTable({
                     className="flex items-center gap-2"
                   >
                     <Copy className="h-4 w-4" />
-                    کپی نسخه
+                    Copy Prescription
                   </Button>
                   <Button
                     variant="destructive"
@@ -268,14 +269,14 @@ export function EditablePrescriptionTable({
                     disabled={isSaving}
                   >
                     <Trash2 className="h-4 w-4 ml-1" />
-                    حذف نسخه
+                    Delete Prescription
                   </Button>
                 </>
               )}
             </div>
           </div>
           <CardDescription>
-            اطلاعات کامل نسخه پزشکی را با دقت وارد کنید
+            Enter complete medical prescription information carefully
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -370,34 +371,6 @@ export function EditablePrescriptionTable({
                     placeholder="شکایت اصلی بیمار"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="historyOfPresentIllness">
-                    تاریخچه بیماری فعلی
-                  </Label>
-                  <Textarea
-                    id="historyOfPresentIllness"
-                    value={editablePrescription.historyOfPresentIllness || ""}
-                    onChange={(e) =>
-                      updateField("historyOfPresentIllness", e.target.value)
-                    }
-                    className="mt-1"
-                    placeholder="شرح کامل تاریخچه بیماری"
-                    rows={3}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="physicalExamination">معاینه فیزیکی</Label>
-                  <Textarea
-                    id="physicalExamination"
-                    value={editablePrescription.physicalExamination || ""}
-                    onChange={(e) =>
-                      updateField("physicalExamination", e.target.value)
-                    }
-                    className="mt-1"
-                    placeholder="یافته‌های معاینه فیزیکی"
-                    rows={3}
-                  />
-                </div>
                 <div>
                   <Label htmlFor="diagnosis">تشخیص *</Label>
                   <Input
@@ -409,15 +382,33 @@ export function EditablePrescriptionTable({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="differentialDiagnosis">تشخیص افتراقی</Label>
+                  <Label htmlFor="doctorName">نام پزشک</Label>
                   <Input
-                    id="differentialDiagnosis"
-                    value={editablePrescription.differentialDiagnosis || ""}
-                    onChange={(e) =>
-                      updateField("differentialDiagnosis", e.target.value)
-                    }
+                    id="doctorName"
+                    value={editablePrescription.doctorName || ""}
+                    onChange={(e) => updateField("doctorName", e.target.value)}
                     className="mt-1"
-                    placeholder="سایر احتمالات"
+                    placeholder="نام پزشک معالج"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="clinicName">نام مرکز درمانی</Label>
+                  <Input
+                    id="clinicName"
+                    value={editablePrescription.clinicName || ""}
+                    onChange={(e) => updateField("clinicName", e.target.value)}
+                    className="mt-1"
+                    placeholder="نام کلینیک یا بیمارستان"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="doctorFree">هزینه ویزیت پزشک</Label>
+                  <Input
+                    id="doctorFree"
+                    value={editablePrescription.doctorFree || ""}
+                    onChange={(e) => updateField("doctorFree", e.target.value)}
+                    className="mt-1"
+                    placeholder="مبلغ ویزیت (مثلاً 50,000 افغانی)"
                   />
                 </div>
               </div>

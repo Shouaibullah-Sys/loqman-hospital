@@ -25,9 +25,6 @@ export const prescriptions = pgTable("prescriptions", {
   // Medical Information
   diagnosis: text("diagnosis").notNull(),
   chiefComplaint: text("chief_complaint"),
-  historyOfPresentIllness: text("history_of_present_illness"),
-  physicalExamination: text("physical_examination"),
-  differentialDiagnosis: text("differential_diagnosis"),
 
   // Vital Signs
   pulseRate: text("pulse_rate"),

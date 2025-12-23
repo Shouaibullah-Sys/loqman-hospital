@@ -14,7 +14,10 @@ export async function POST(request: NextRequest) {
     // Check authentication
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized access" },
+        { status: 401 }
+      );
     }
 
     const {
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     if (!symptoms?.trim()) {
       return NextResponse.json(
-        { error: "شرح حال بیمار الزامی است" },
+        { error: "Patient history is required" },
         { status: 400 }
       );
     }
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
       });
     } catch {
       return NextResponse.json(
-        { error: "خطا در تحلیل علائم" },
+        { error: "Error analyzing symptoms" },
         { status: 500 }
       );
     }
@@ -72,16 +75,16 @@ async function getAIMedicalAnalysis(
   model: string
 ): Promise<{ text: string; confidence: string }> {
   try {
-    const prompt = `شرح حال بیمار: ${symptoms}
-    ${patientHistory ? `تاریخچه پزشکی: ${patientHistory}` : ""}
+    const prompt = `Patient history: ${symptoms}
+    ${patientHistory ? `Medical history: ${patientHistory}` : ""}
     
-    لطفاً به عنوان یک پزشک متخصص تحلیل کنید:
-    ۱. تشخیص‌های احتمالی
-    ۲. معاینات لازم
-    ۳. اقدامات اولیه
-    ۴. هشدارهای مهم
+    Please analyze as a specialist doctor:
+    1. Possible diagnoses
+    2. Required examinations
+    3. Initial actions
+    4. Important warnings
     
-    پاسخ به زبان فارسی و حرفه‌ای باشد.`;
+    Response should be professional and in English.`;
 
     const response = await fetch(
       `https://api-inference.huggingface.co/models/${model}`,
@@ -141,25 +144,25 @@ async function generateLocalAnalysis(
 ): Promise<string> {
   const medicalKnowledge = {
     conditions: {
-      "سرفه خشک": "برونشیت حاد، آسم، آلرژی",
-      "سرفه خلط دار": "برونشیت، پنومونی، عفونت تنفسی",
-      "تب بالا": "عفونت باکتریال، آنفولانزا، COVID-19",
-      گلودرد: "فارنژیت، تونسیلیت، استرپتوکوک",
-      "سردرد شدید": "میگرن، سینوزیت، فشار خون",
-      "درد قفسه سینه": "مشکلات قلبی، ریوی، گوارشی",
-      "تنگی نفس": "آسم، COPD، اضطراب، مشکلات قلبی",
+      "dry cough": "Acute bronchitis, asthma, allergy",
+      "productive cough": "Bronchitis, pneumonia, respiratory infection",
+      "high fever": "Bacterial infection, influenza, COVID-19",
+      "sore throat": "Pharyngitis, tonsillitis, streptococcus",
+      "severe headache": "Migraine, sinusitis, hypertension",
+      "chest pain": "Cardiac, pulmonary, gastrointestinal problems",
+      "shortness of breath": "Asthma, COPD, anxiety, cardiac problems",
     },
     recommendations: {
-      عفونی: "استراحت، مایعات، آنتی بیوتیک در صورت باکتریال",
-      تنفسی: "معاینه ریه، اسپیرومتری، عکس قفسه سینه",
-      قلبی: "نوار قلب، اکو، تست ورزش",
-      عصبی: "سی تی اسکن، MRI، معاینه عصبی",
+      infectious: "Rest, fluids, antibiotics if bacterial",
+      respiratory: "Lung examination, spirometry, chest X-ray",
+      cardiac: "ECG, echocardiogram, stress test",
+      neurological: "CT scan, MRI, neurological examination",
     },
   };
 
   const symptomList = symptoms.toLowerCase();
   let possibleConditions: string[] = [];
-  let recommendedActions: string[] = ["معاینه فیزیکی کامل"];
+  let recommendedActions: string[] = ["Complete physical examination"];
 
   // Analyze symptoms
   Object.entries(medicalKnowledge.conditions).forEach(
@@ -172,19 +175,22 @@ async function generateLocalAnalysis(
 
   // Generate recommendations based on possible conditions
   if (symptomList.includes("سرفه") || symptomList.includes("تنگی نفس")) {
-    recommendedActions.push("معاینه ریه", "عکس قفسه سینه در صورت نیاز");
+    recommendedActions.push("Lung examination", "Chest X-ray if needed");
   }
 
   if (symptomList.includes("تب") || symptomList.includes("بدن درد")) {
-    recommendedActions.push("آزمایش خون", "کشت خلط در صورت سرفه");
+    recommendedActions.push("Blood test", "Sputum culture if cough");
   }
 
   if (symptomList.includes("سردرد") || symptomList.includes("سرگیجه")) {
-    recommendedActions.push("معاینه عصبی", "اندازه گیری فشار خون");
+    recommendedActions.push(
+      "Neurological examination",
+      "Blood pressure measurement"
+    );
   }
 
   const uniqueConditions = [
-    ...new Set(possibleConditions.flatMap((c) => c.split("، "))),
+    ...new Set(possibleConditions.flatMap((c) => c.split(", "))),
   ];
 
   return `تحلیل اولیه بر اساس شرح حال:

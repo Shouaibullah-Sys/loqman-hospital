@@ -1,6 +1,6 @@
 // app/api/prescriptions/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/index";
+import { db, dbQuery, checkDatabaseConnection } from "@/db/index";
 import { prescriptions, medicines } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq, and, like, or, inArray, desc } from "drizzle-orm";
@@ -36,6 +36,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check database connectivity first
+    const connectionCheck = await checkDatabaseConnection();
+    if (!connectionCheck.healthy) {
+      console.error("Database connection failed:", connectionCheck.error);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Database connection is currently unavailable. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
@@ -56,10 +70,12 @@ export async function GET(request: NextRequest) {
     console.log("Fetching prescriptions for user:", userId);
 
     // Get total count first
-    const totalCountResult = await db
-      .select({ id: prescriptions.id })
-      .from(prescriptions)
-      .where(whereCondition);
+    const totalCountResult = await dbQuery(async () => {
+      return await db
+        .select({ id: prescriptions.id })
+        .from(prescriptions)
+        .where(whereCondition);
+    });
 
     const totalCount = totalCountResult.length;
     console.log("Total prescriptions found:", totalCount);
@@ -80,31 +96,35 @@ export async function GET(request: NextRequest) {
     }
 
     // Get paginated prescription IDs - most recent first
-    const prescriptionIds = await db
-      .select({ id: prescriptions.id })
-      .from(prescriptions)
-      .where(whereCondition)
-      .orderBy(desc(prescriptions.createdAt))
-      .limit(limit)
-      .offset(skip);
+    const prescriptionIds = await dbQuery(async () => {
+      return await db
+        .select({ id: prescriptions.id })
+        .from(prescriptions)
+        .where(whereCondition)
+        .orderBy(desc(prescriptions.createdAt))
+        .limit(limit)
+        .offset(skip);
+    });
 
     console.log("Paginated prescription IDs:", prescriptionIds.length);
 
     // Get prescriptions with medicines
-    const prescriptionsData = await db
-      .select({
-        prescription: prescriptions,
-        medicine: medicines,
-      })
-      .from(prescriptions)
-      .where(
-        inArray(
-          prescriptions.id,
-          prescriptionIds.map((p) => p.id)
+    const prescriptionsData = await dbQuery(async () => {
+      return await db
+        .select({
+          prescription: prescriptions,
+          medicine: medicines,
+        })
+        .from(prescriptions)
+        .where(
+          inArray(
+            prescriptions.id,
+            prescriptionIds.map((p) => p.id)
+          )
         )
-      )
-      .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))
-      .orderBy(desc(prescriptions.createdAt));
+        .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))
+        .orderBy(desc(prescriptions.createdAt));
+    });
 
     // Group prescriptions with their medicines
     const groupedPrescriptions = prescriptionsData.reduce((acc, row) => {
@@ -145,6 +165,23 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get prescriptions error:", error);
+
+    // Check if it's a database connection error
+    if (
+      error instanceof Error &&
+      (error.message.includes("database") ||
+        error.message.includes("connection"))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Database connection is currently unavailable. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: "خطا در دریافت نسخه‌ها" },
       { status: 500 }
@@ -166,6 +203,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check database connectivity first
+    const connectionCheck = await checkDatabaseConnection();
+    if (!connectionCheck.healthy) {
+      console.error("Database connection failed:", connectionCheck.error);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Database connection is currently unavailable. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     console.log("Received prescription data:", body);
 
@@ -180,53 +231,52 @@ export async function POST(request: NextRequest) {
     const prescriptionId = uuidv4();
 
     // Create prescription
-    const [prescription] = await db
-      .insert(prescriptions)
-      .values({
-        id: prescriptionId,
-        userId: userId,
-        patientName: body.patientName,
-        patientAge: body.patientAge || "",
-        patientGender: body.patientGender || "",
-        patientPhone: body.patientPhone || "",
-        patientAddress: body.patientAddress || "",
-        diagnosis: body.diagnosis,
-        chiefComplaint: body.chiefComplaint || "",
-        historyOfPresentIllness: body.historyOfPresentIllness || "",
-        physicalExamination: body.physicalExamination || "",
-        differentialDiagnosis: body.differentialDiagnosis || "",
-        pulseRate: body.pulseRate || "",
-        bloodPressure: body.bloodPressure || "",
-        temperature: body.temperature || "",
-        respiratoryRate: body.respiratoryRate || "",
-        oxygenSaturation: body.oxygenSaturation || "",
-        allergies: body.allergies || [],
-        currentMedications: body.currentMedications || [],
-        pastMedicalHistory: body.pastMedicalHistory || "",
-        familyHistory: body.familyHistory || "",
-        socialHistory: body.socialHistory || "",
-        instructions: body.instructions || "",
-        followUp: body.followUp || "",
-        restrictions: body.restrictions || "",
-        doctorName: body.doctorName || "دکتر",
-        doctorLicenseNumber: body.doctorLicenseNumber || "",
-        clinicName: body.clinicName || "",
-        clinicAddress: body.clinicAddress || "",
-        doctorFree: body.doctorFree || "",
-        prescriptionDate: body.prescriptionDate
-          ? new Date(body.prescriptionDate)
-          : new Date(),
-        prescriptionNumber: body.prescriptionNumber || "",
-        source: body.source || "manual",
-        status: "active",
-        aiConfidence: body.aiConfidence || "",
-        aiModelUsed: body.aiModelUsed || "",
-        processingTime: body.processingTime || 0,
-        rawAiResponse: body.rawAiResponse || null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+    const [prescription] = await dbQuery(async () => {
+      return await db
+        .insert(prescriptions)
+        .values({
+          id: prescriptionId,
+          userId: userId,
+          patientName: body.patientName,
+          patientAge: body.patientAge || "",
+          patientGender: body.patientGender || "",
+          patientPhone: body.patientPhone || "",
+          patientAddress: body.patientAddress || "",
+          diagnosis: body.diagnosis,
+          chiefComplaint: body.chiefComplaint || "",
+          pulseRate: body.pulseRate || "",
+          bloodPressure: body.bloodPressure || "",
+          temperature: body.temperature || "",
+          respiratoryRate: body.respiratoryRate || "",
+          oxygenSaturation: body.oxygenSaturation || "",
+          allergies: body.allergies || [],
+          currentMedications: body.currentMedications || [],
+          pastMedicalHistory: body.pastMedicalHistory || "",
+          familyHistory: body.familyHistory || "",
+          socialHistory: body.socialHistory || "",
+          instructions: body.instructions || "",
+          followUp: body.followUp || "",
+          restrictions: body.restrictions || "",
+          doctorName: body.doctorName || "دکتر",
+          doctorLicenseNumber: body.doctorLicenseNumber || "",
+          clinicName: body.clinicName || "",
+          clinicAddress: body.clinicAddress || "",
+          doctorFree: body.doctorFree || "",
+          prescriptionDate: body.prescriptionDate
+            ? new Date(body.prescriptionDate)
+            : new Date(),
+          prescriptionNumber: body.prescriptionNumber || "",
+          source: body.source || "manual",
+          status: "active",
+          aiConfidence: body.aiConfidence || "",
+          aiModelUsed: body.aiModelUsed || "",
+          processingTime: body.processingTime || 0,
+          rawAiResponse: body.rawAiResponse || null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+    });
 
     console.log("Prescription created:", prescription.id);
 
@@ -270,10 +320,9 @@ export async function POST(request: NextRequest) {
       if (medicinesData.length > 0) {
         // Insert all medicines in a single query for consistency and try to get returned rows (if DB supports)
         try {
-          const inserted = await db
-            .insert(medicines)
-            .values(medicinesData)
-            .returning();
+          const inserted = await dbQuery(async () => {
+            return await db.insert(medicines).values(medicinesData).returning();
+          });
           console.log(
             "Medicines inserted (returning):",
             Array.isArray(inserted) ? inserted.length : "unknown",
@@ -285,15 +334,19 @@ export async function POST(request: NextRequest) {
             "Insert returning() failed or unsupported, falling back to non-returning insert:",
             insertErr
           );
-          await db.insert(medicines).values(medicinesData);
+          await dbQuery(async () => {
+            return await db.insert(medicines).values(medicinesData);
+          });
         }
 
         // Verify by selecting from DB to make sure rows exist
         try {
-          const verify = await db
-            .select()
-            .from(medicines)
-            .where(eq(medicines.prescriptionId, prescriptionId));
+          const verify = await dbQuery(async () => {
+            return await db
+              .select()
+              .from(medicines)
+              .where(eq(medicines.prescriptionId, prescriptionId));
+          });
           console.log(
             "Verified medicines count in DB for prescription:",
             prescriptionId,
@@ -314,14 +367,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the complete prescription with medicines
-    const completeData = await db
-      .select({
-        prescription: prescriptions,
-        medicine: medicines,
-      })
-      .from(prescriptions)
-      .where(eq(prescriptions.id, prescriptionId))
-      .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId));
+    const completeData = await dbQuery(async () => {
+      return await db
+        .select({
+          prescription: prescriptions,
+          medicine: medicines,
+        })
+        .from(prescriptions)
+        .where(eq(prescriptions.id, prescriptionId))
+        .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId));
+    });
 
     const groupedData = completeData.reduce((acc, row) => {
       if (!acc.prescription) {
@@ -348,6 +403,23 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Create prescription error:", error);
+
+    // Check if it's a database connection error
+    if (
+      error instanceof Error &&
+      (error.message.includes("database") ||
+        error.message.includes("connection"))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Database connection is currently unavailable. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: "خطا در ایجاد نسخه" },
       { status: 500 }

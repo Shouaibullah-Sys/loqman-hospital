@@ -8,7 +8,10 @@ export async function POST(request: NextRequest) {
     // Check authentication
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: "دسترسی غیرمجاز" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized access" },
+        { status: 401 }
+      );
     }
 
     const { text } = await request.json();
@@ -75,8 +78,8 @@ async function generateIntelligentPrescription(inputText: string) {
     pastMedicalHistory: "",
 
     // Professional Info
-    doctorName: "دکتر احمدی",
-    clinicName: "کلینیک تخصصی",
+    doctorName: "Dr. Ahmad",
+    clinicName: "Specialized Clinic",
 
     createdAt: new Date().toISOString(),
   };
@@ -468,18 +471,18 @@ function generateDifferentialDiagnosis(matchedConditions: any[]): string {
 
 function generateInstructions(diagnosis: string): string {
   const instructions = {
-    "برونشیت حاد": "استراحت کافی، مصرف مایعات گرم، اجتناب از هوای سرد",
+    "برونشیت حاد": "Adequate rest, warm fluids, avoid cold air",
     "فارنژیت استرپتوکوکی":
-      "غرغره آب نمک، مصرف مایعات فراوان، پرهیز از غذاهای تند",
-    "سینوزیت حاد": "شستشوی بینی با سرم نمکی، مصرف مایعات گرم",
-    "عفونت ادراری": "مصرف زیاد مایعات، پرهیز از کافئین",
-    میگرن: "استراحت در محیط تاریک و ساکت، پرهیز از محرک‌های غذایی",
-    "رینیت آلرژیک": "اجتناب از عوامل آلرژن، شستشوی بینی",
+      "Salt water gargle, plenty of fluids, avoid spicy foods",
+    "سینوزیت حاد": "Nasal irrigation with saline, warm fluids",
+    "عفونت ادراری": "Increased fluid intake, avoid caffeine",
+    میگرن: "Rest in dark and quiet environment, avoid food triggers",
+    "رینیت آلرژیک": "Avoid allergens, nasal irrigation",
   };
 
   return (
     instructions[diagnosis as keyof typeof instructions] ||
-    "استراحت کافی و مصرف منظم داروها"
+    "Adequate rest and regular medication intake"
   );
 }
 
