@@ -224,7 +224,7 @@ export const useColumns = ({
               variant="outline"
               size="sm"
               onClick={() => onViewDetails(prescription)}
-              className="flex items-center gap-1 h-8"
+              className="flex items-center gap-1 h-8 text-foreground hover:text-foreground hover:bg-accent"
             >
               <Eye className="h-4 w-4" />
               جزئیات
@@ -234,7 +234,7 @@ export const useColumns = ({
               size="sm"
               onClick={() => handleDownload(prescription)}
               disabled={isDownloading}
-              className="flex items-center gap-1 h-8"
+              className="flex items-center gap-1 h-8 text-foreground hover:text-foreground hover:bg-accent"
             >
               {isDownloading ? (
                 <>
@@ -254,7 +254,7 @@ export const useColumns = ({
               onClick={() =>
                 handleDelete(prescription.id, prescription.patientName)
               }
-              className="flex items-center gap-1 h-8"
+              className="flex items-center gap-1 h-8 hover:text-white"
             >
               <Trash2 className="h-4 w-4" />
               حذف

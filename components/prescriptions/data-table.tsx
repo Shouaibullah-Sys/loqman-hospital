@@ -163,7 +163,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="flex items-center gap-1 text-xs sm:text-sm"
+            className="flex items-center gap-1 text-xs sm:text-sm text-foreground hover:text-foreground hover:bg-accent"
           >
             <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
             قبلی
@@ -173,7 +173,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="flex items-center gap-1 text-xs sm:text-sm"
+            className="flex items-center gap-1 text-xs sm:text-sm text-foreground hover:text-foreground hover:bg-accent"
           >
             بعدی
             <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />

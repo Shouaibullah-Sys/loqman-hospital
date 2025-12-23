@@ -150,13 +150,13 @@ export async function generatePrescriptionPDF(
   y += 8;
   doc.setFont("vazirmatn", "normal");
   doc.setFontSize(10);
-  doc.text(`نام مریض: ${prescription.patientName}`, pageWidth - 60, y);
+  doc.text(`نام مریض: ${prescription.patientName}`, pageWidth - 80, y);
   doc.text(
     `عمر و جنسیت: ${prescription.patientAge}، ${prescription.patientGender}`,
-    pageWidth - 60,
+    pageWidth - 80,
     (y += 14)
   );
-  doc.text(`حالت: ${prescription.status}`, pageWidth - 60, (y += 14));
+  doc.text(`حالت: ${prescription.status}`, pageWidth - 80, (y += 14));
   addSeparator();
 
   // --- VITAL SIGNS & CLINICAL DATA ---
