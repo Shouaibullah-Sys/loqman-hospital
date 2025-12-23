@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 export async function GET(request: NextRequest) {
   try {
     // Get user-created presets from database
-    const userPrescriptions = await db
+    const userPrescriptionsResult = await db
       .select()
       .from(prescriptions)
       .where(eq(prescriptions.source, "user_created"));
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Get medicines for user prescriptions
     const userPrescriptionsWithMedicines: Record<string, any> = {};
 
-    for (const prescription of userPrescriptions) {
+    for (const prescription of userPrescriptionsResult) {
       const prescriptionMedicines = await db
         .select()
         .from(medicines)
@@ -24,8 +24,17 @@ export async function GET(request: NextRequest) {
       userPrescriptionsWithMedicines[prescription.id] = {
         ...prescription,
         medicines: prescriptionMedicines.map((med) => ({
-          ...med,
           id: med.id,
+          medicine: med.medicine,
+          dosage: med.dosage,
+          frequency: med.frequency,
+          duration: med.duration,
+          route: med.route,
+          timing: med.timing,
+          withFood: med.withFood,
+          instructions: med.instructions,
+          notes: med.notes,
+          prescriptionId: med.prescriptionId,
         })),
       };
     }

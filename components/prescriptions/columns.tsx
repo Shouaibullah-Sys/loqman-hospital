@@ -3,16 +3,15 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Prescription } from "../../types/prescription";
-import {
-  Prescription as DbPrescription,
-  Medicine as DbMedicine,
-} from "../../db/schema";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { faIR } from "date-fns/locale";
 import { format as formatJalali } from "date-fns-jalali";
-import { downloadPrescriptionPDF } from "../../utils/generatePrescriptionPDF";
+import {
+  downloadPrescriptionPDF,
+  VoicePrescription,
+} from "../../utils/generatePrescriptionPDF";
 import { useState } from "react";
 
 interface ColumnsProps {
@@ -26,78 +25,60 @@ export const useColumns = ({
 }: ColumnsProps): ColumnDef<Prescription>[] => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  // Convert custom Prescription type to database Prescription type
-  const convertToDbPrescription = (
+  // Convert custom Prescription type to VoicePrescription type for PDF generation
+  const convertToVoicePrescription = (
     prescription: Prescription
-  ): DbPrescription & { medicines: DbMedicine[] } => {
-    // Ensure required string fields for notNull() database constraints
+  ): VoicePrescription => {
+    // Ensure required string fields
     const safeUserId = prescription.userId || "unknown-user";
     const safePatientName = prescription.patientName || "نامشخص";
     const safeDiagnosis = prescription.diagnosis || "تشخیص نشده";
     const safeDoctorName = prescription.doctorName || "دکتر";
 
+    // Convert medications to Medication format
+    const medications = prescription.medicines.map((med) => ({
+      medicine: med.medicine,
+      dosage: med.dosage,
+      frequency: med.frequency || "",
+      duration: med.duration || "",
+      instructions: med.instructions || "",
+      form: med.form,
+      route: med.route,
+      timing: med.timing,
+      withFood: med.withFood || false,
+      notes: med.notes,
+    }));
+
+    // Format date as string for VoicePrescription
+    const prescriptionDate =
+      prescription.prescriptionDate instanceof Date
+        ? prescription.prescriptionDate.toISOString()
+        : new Date(prescription.prescriptionDate || Date.now()).toISOString();
+
     return {
-      id: prescription.id,
-      userId: safeUserId,
+      _id: prescription.id,
       patientName: safePatientName,
-      patientAge: prescription.patientAge || null,
-      patientGender: prescription.patientGender || null,
-      patientPhone: prescription.patientPhone || null,
-      patientAddress: prescription.patientAddress || null,
-      diagnosis: safeDiagnosis,
-      chiefComplaint: prescription.chiefComplaint || null,
-      pulseRate: prescription.pulseRate || null,
-      bloodPressure: prescription.bloodPressure || null,
-      temperature: prescription.temperature || null,
-      respiratoryRate: prescription.respiratoryRate || null,
-      oxygenSaturation: prescription.oxygenSaturation || null,
+      patientAge: prescription.patientAge || "نامشخص",
+      patientGender: prescription.patientGender || "نامشخص",
       allergies: prescription.allergies || [],
-      currentMedications: prescription.currentMedications || [],
-      pastMedicalHistory: prescription.pastMedicalHistory || null,
-      familyHistory: prescription.familyHistory || null,
-      socialHistory: prescription.socialHistory || null,
+      pulseRate: prescription.pulseRate || "",
+      medicationUsage: (prescription.currentMedications || []).join(", "),
+      relevantPastMedicalHistory: prescription.pastMedicalHistory || "",
+      diagnosis: safeDiagnosis,
+      medicines: medications,
       instructions: prescription.instructions || "",
-      followUp: prescription.followUp || null,
-      restrictions: prescription.restrictions || null,
       doctorName: safeDoctorName,
-      doctorLicenseNumber: prescription.doctorLicenseNumber || null,
-      clinicName: prescription.clinicName || null,
-      clinicAddress: prescription.clinicAddress || null,
-      doctorFree: prescription.doctorFree || null,
-      prescriptionDate: new Date(prescription.prescriptionDate || new Date()),
-      prescriptionNumber: prescription.prescriptionNumber || null,
-      source: prescription.source || null,
+      date: prescriptionDate,
+      source: prescription.source || "manual",
       status: prescription.status || "active",
-      createdAt: new Date(prescription.createdAt || Date.now()),
-      updatedAt: new Date(prescription.updatedAt || Date.now()),
-      aiConfidence: prescription.aiConfidence || null,
-      aiModelUsed: prescription.aiModelUsed || null,
-      processingTime: prescription.processingTime || null,
-      rawAiResponse: prescription.rawAiResponse || null,
-      medicines: prescription.medicines.map((med) => ({
-        id: med.id,
-        prescriptionId: med.prescriptionId,
-        medicine: med.medicine,
-        dosage: med.dosage,
-        form: med.form || null,
-        frequency: med.frequency,
-        duration: med.duration,
-        route: med.route || null,
-        timing: med.timing || null,
-        withFood: med.withFood || false,
-        instructions: med.instructions || null,
-        notes: med.notes || null,
-        createdAt: new Date(med.createdAt || Date.now()),
-        updatedAt: new Date(med.updatedAt || Date.now()),
-      })),
     };
   };
 
   const handleDownload = async (prescription: Prescription) => {
     try {
       setDownloadingId(prescription.id);
-      const dbPrescription = convertToDbPrescription(prescription);
-      await downloadPrescriptionPDF(dbPrescription);
+      const voicePrescription = convertToVoicePrescription(prescription);
+      await downloadPrescriptionPDF(voicePrescription);
     } catch (error) {
       console.error("Failed to download PDF:", error);
     } finally {
@@ -121,7 +102,7 @@ export const useColumns = ({
       header: "بیمار",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-gray-500" />
+          <User className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">{row.original.patientName}</span>
         </div>
       ),
@@ -158,7 +139,7 @@ export const useColumns = ({
           : new Date();
         return (
           <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4 text-gray-500" />
+            <Calendar className="h-4 w-4 text-muted-foreground" />
             <span>{formatJalali(date, "yyyy/MM/dd")}</span>
           </div>
         );
@@ -181,7 +162,7 @@ export const useColumns = ({
         const medicines = row.original.medicines || [];
         return (
           <div className="text-center">
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs font-medium px-2 py-1 rounded-full">
               {medicines.length} دارو
             </span>
           </div>
@@ -194,10 +175,26 @@ export const useColumns = ({
       cell: ({ row }) => {
         const status = row.original.status || "active";
         const statusConfig = {
-          active: { label: "فعال", color: "bg-green-100 text-green-800" },
-          completed: { label: "تکمیل شده", color: "bg-blue-100 text-blue-800" },
-          cancelled: { label: "لغو شده", color: "bg-red-100 text-red-800" },
-          draft: { label: "پیش‌نویس", color: "bg-yellow-100 text-yellow-800" },
+          active: {
+            label: "فعال",
+            color:
+              "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+          },
+          completed: {
+            label: "تکمیل شده",
+            color:
+              "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+          },
+          cancelled: {
+            label: "لغو شده",
+            color:
+              "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
+          },
+          draft: {
+            label: "پیش‌نویس",
+            color:
+              "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
+          },
         };
 
         const config = statusConfig[status as keyof typeof statusConfig] || {
@@ -241,8 +238,8 @@ export const useColumns = ({
             >
               {isDownloading ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
-                  ...
+                  <div className="animate-spin rounded-full h-3 w-3 border-current border-b-2"></div>
+                  <span className="sr-only">در حال دانلود...</span>
                 </>
               ) : (
                 <>

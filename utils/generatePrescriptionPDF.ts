@@ -4,7 +4,7 @@ import { jsPDF } from "jspdf";
 import { format } from "date-fns";
 import "../vazirmatn-normal.js"; // Unicode font (Vazirmatn) already converted to JS
 
-interface Medication {
+export interface Medication {
   medicine: string;
   dosage: string;
   frequency: string;
@@ -17,7 +17,7 @@ interface Medication {
   notes?: string;
 }
 
-interface VoicePrescription {
+export interface VoicePrescription {
   _id: string;
   patientName: string;
   patientAge: string;
@@ -145,30 +145,18 @@ export async function generatePrescriptionPDF(
     y += 8;
   };
 
-  // --- PATIENT INFORMATION ---
-  drawSectionHeader("Patient Information", "معلومات مریض");
+  // --- PATIENT INFORMATION (Persian only) ---
+  drawSectionHeader("", "معلومات مریض");
   y += 8;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-  doc.setFontSize(10);
-  doc.text(`Name: ${prescription.patientName}`, 60, y);
-  doc.text(
-    `Age & Gender: ${prescription.patientAge}, ${prescription.patientGender}`,
-    60,
-    (y += 14)
-  );
-  doc.text(`Status: ${prescription.status}`, 60, (y += 14));
-
   doc.setFont("vazirmatn", "normal");
-  doc.text(`نام مریض: ${prescription.patientName}`, pageWidth - 60, y - 28, {
-    align: "right",
-  });
+  doc.setFontSize(10);
+  doc.text(`نام مریض: ${prescription.patientName}`, pageWidth - 60, y);
   doc.text(
     `عمر و جنسیت: ${prescription.patientAge}، ${prescription.patientGender}`,
     pageWidth - 60,
-    y - 14,
-    { align: "right" }
+    (y += 14)
   );
+  doc.text(`حالت: ${prescription.status}`, pageWidth - 60, (y += 14));
   addSeparator();
 
   // --- VITAL SIGNS & CLINICAL DATA ---

@@ -59,7 +59,7 @@ export function DataTable<TData, TValue>({
       {/* Search */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="جستجو بر اساس نام بیمار یا تشخیص..."
             value={
@@ -83,7 +83,7 @@ export function DataTable<TData, TValue>({
             >
               {row.getVisibleCells().map((cell) => (
                 <div key={cell.id} className="flex justify-between items-start">
-                  <span className="text-sm font-medium text-gray-500 min-w-20">
+                  <span className="text-sm font-medium text-muted-foreground min-w-20">
                     {cell.column.columnDef.header as string}
                   </span>
                   <span className="text-sm text-right flex-1">
@@ -94,7 +94,7 @@ export function DataTable<TData, TValue>({
             </div>
           ))
         ) : (
-          <div className="border rounded-lg p-8 text-center text-gray-500">
+          <div className="border rounded-lg p-8 text-center text-muted-foreground">
             موردی یافت نشد.
           </div>
         )}
@@ -154,7 +154,7 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="text-sm text-gray-600 text-center sm:text-right">
+        <div className="text-sm text-muted-foreground text-center sm:text-right">
           نمایش {table.getFilteredRowModel().rows.length} از {data.length} مورد
         </div>
         <div className="flex items-center gap-2">
