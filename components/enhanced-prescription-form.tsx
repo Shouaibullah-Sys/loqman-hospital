@@ -44,9 +44,9 @@ import {
   Clock,
   FileText,
   Printer,
+  ChevronRight,
 } from "lucide-react";
 import { Prescription, FormMedicine } from "@/types/prescription";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -74,7 +74,7 @@ export function EnhancedPrescriptionForm({
       return initializePrescription(prescription);
     });
 
-  const [activeSection, setActiveSection] = useState<string>("clinical");
+  const [activeSection, setActiveSection] = useState<string>("patient");
 
   useEffect(() => {
     setEditablePrescription(initializePrescription(prescription));
@@ -131,7 +131,7 @@ export function EnhancedPrescriptionForm({
       clinicName: prescription.clinicName || "کلینیک تخصصی",
       doctorFree: prescription.doctorFree || "",
       chiefComplaint: prescription.chiefComplaint || "",
-      doctorName: prescription.doctorName || "دکتر احمدی",
+      doctorName: prescription.doctorName || "dr. Ahmad Farid ",
       createdAt: prescription.createdAt || new Date().toISOString(),
     };
   }
@@ -237,9 +237,39 @@ export function EnhancedPrescriptionForm({
     day: "numeric",
   });
 
+  // Navigation sections
+  const sections = [
+    {
+      id: "patient",
+      icon: User,
+      title: "اطلاعات بیمار",
+      description: "مشخصات فردی",
+    },
+    {
+      id: "clinical",
+      icon: Stethoscope,
+      title: "معاینه بالینی",
+      description: "تشخیص و علائم",
+    },
+    {
+      id: "medicines",
+      icon: Pill,
+      title: "داروها",
+      description: `${medicinesCount} دارو`,
+    },
+  ];
+
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="h-full flex flex-col">
         {/* Header Card with Quick Info */}
         <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
           <CardContent className="p-4 sm:p-6">
@@ -294,795 +324,793 @@ export function EnhancedPrescriptionForm({
           </CardContent>
         </Card>
 
-        {/* Main Tabs - Fixed with clinic theme */}
-        <Card className="border-border/50 shadow-sm">
-          <CardContent className="p-0">
-            <Tabs
-              value={activeSection}
-              onValueChange={setActiveSection}
-              className="w-full"
-            >
-              <TabsList className="w-full justify-start h-auto p-0 border-b bg-transparent overflow-x-auto flex-nowrap scrollbar-hide">
-                <TabsTrigger
-                  value="patient"
-                  className="
-                    relative 
-                    data-[state=active]:text-primary 
-                    data-[state=active]:border-b-2 
-                    data-[state=active]:border-primary 
-                    data-[state=active]:bg-primary/5
-                    rounded-none 
-                    px-3 sm:px-4 md:px-6 
-                    py-3 sm:py-4
-                    h-auto 
-                    text-xs sm:text-sm
-                    flex-shrink-0
-                    flex items-center gap-1 sm:gap-2
-                    text-muted-foreground 
-                    data-[state=active]:text-primary
-                    dark:text-gray-300
-                    dark:data-[state=active]:text-primary
-                    dark:data-[state=active]:bg-primary/10
-                    transition-colors duration-200
-                    hover:text-foreground dark:hover:text-white
-                  "
-                >
-                  <User className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                  <div className="text-right">
-                    <div className="font-medium sm:font-semibold">
-                      اطلاعات بیمار
-                    </div>
-                    <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
-                      مشخصات فردی
-                    </div>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="clinical"
-                  className="
-                    relative 
-                    data-[state=active]:text-primary 
-                    data-[state=active]:border-b-2 
-                    data-[state=active]:border-primary 
-                    data-[state=active]:bg-primary/5
-                    rounded-none 
-                    px-3 sm:px-4 md:px-6 
-                    py-3 sm:py-4
-                    h-auto 
-                    text-xs sm:text-sm
-                    flex-shrink-0
-                    flex items-center gap-1 sm:gap-2
-                    text-muted-foreground 
-                    data-[state=active]:text-primary
-                    dark:text-gray-300
-                    dark:data-[state=active]:text-primary
-                    dark:data-[state=active]:bg-primary/10
-                    transition-colors duration-200
-                    hover:text-foreground dark:hover:text-white
-                  "
-                >
-                  <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                  <div className="text-right">
-                    <div className="font-medium sm:font-semibold">
-                      معاینه بالینی
-                    </div>
-                    <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
-                      {hasAIClinicalData && (
-                        <div className="flex items-center gap-1">
-                          <Sparkles className="h-2 w-2 sm:h-3 sm:w-3 text-green-500" />
-                          AI Generated
-                        </div>
+        {/* Quick Navigation Bar - Fixed */}
+        <Card className="sticky top-0 z-20 shadow-sm mt-4">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-1">
+                {sections.map((section) => {
+                  const Icon = section.icon;
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => scrollToSection(section.id)}
+                      className={`
+                flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                ${
+                  activeSection === section.id
+                    ? "bg-primary text-primary-foreground border border-primary shadow-sm" // Fixed: Better contrast
+                    : "text-muted hover:text-foreground hover:bg-muted/50 dark:hover:text-muted-foreground" // Fixed: Added dark mode hover
+                }
+              `}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="whitespace-nowrap">
+                        {section.title}
+                      </span>{" "}
+                      {/* Added: Prevent text wrapping */}
+                      {section.id === "clinical" && hasAIClinicalData && (
+                        <Sparkles className="h-3 w-3 text-yellow-400 dark:text-yellow-300" /> // Improved: Better visibility
                       )}
-                    </div>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="medicines"
-                  className="
-                    relative 
-                    data-[state=active]:text-primary 
-                    data-[state=active]:border-b-2 
-                    data-[state=active]:border-primary 
-                    data-[state=active]:bg-primary/5
-                    rounded-none 
-                    px-3 sm:px-4 md:px-6 
-                    py-3 sm:py-4
-                    h-auto 
-                    text-xs sm:text-sm
-                    flex-shrink-0
-                    flex items-center gap-1 sm:gap-2
-                    text-muted-foreground 
-                    data-[state=active]:text-primary
-                    dark:text-gray-300
-                    dark:data-[state=active]:text-primary
-                    dark:data-[state=active]:bg-primary/10
-                    transition-colors duration-200
-                    hover:text-foreground dark:hover:text-white
-                  "
-                >
-                  <Pill className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                  <div className="text-right">
-                    <div className="font-medium sm:font-semibold">داروها</div>
-                    <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
-                      {medicinesCount} دارو
-                      {medicinesCount > 0 && (
-                        <Sparkles className="inline h-2 w-2 sm:h-3 sm:w-3 text-green-500 mr-1" />
+                      {section.id === "medicines" && medicinesCount > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className={`
+                    h-5 px-1.5 text-xs
+                    ${
+                      activeSection === section.id
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    }
+                  `}
+                        >
+                          {medicinesCount}
+                        </Badge>
                       )}
-                    </div>
-                  </div>
-                </TabsTrigger>
-              </TabsList>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-xs text-muted-foreground hidden sm:block">
+                کلیک کنید برای رفتن به هر بخش
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Patient Information Tab */}
-              <TabsContent value="patient" className="p-4 sm:p-6">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2 mb-6">
-                    <User className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold">مشخصات بیمار</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-card border">
-                    <div>
-                      <Label
-                        htmlFor="patientName"
-                        className="text-sm font-medium"
-                      >
-                        نام کامل بیمار *
-                      </Label>
-                      <Input
-                        id="patientName"
-                        value={editablePrescription.patientName || ""}
-                        onChange={(e) =>
-                          updateField("patientName", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="نام و نام خانوادگی"
-                      />
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="patientAge"
-                        className="text-sm font-medium"
-                      >
-                        سن
-                      </Label>
-                      <Input
-                        id="patientAge"
-                        value={editablePrescription.patientAge || ""}
-                        onChange={(e) =>
-                          updateField("patientAge", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="مثال: 35 سال"
-                      />
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="patientGender"
-                        className="text-sm font-medium"
-                      >
-                        جنسیت
-                      </Label>
-                      <Select
-                        value={editablePrescription.patientGender || ""}
-                        onValueChange={(value) =>
-                          updateField("patientGender", value)
-                        }
-                      >
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="انتخاب جنسیت" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="مرد">مرد</SelectItem>
-                          <SelectItem value="زن">زن</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="patientPhone"
-                        className="text-sm font-medium"
-                      >
-                        <Phone className="h-3 w-3 inline ml-1" />
-                        شماره تماس
-                      </Label>
-                      <Input
-                        id="patientPhone"
-                        value={editablePrescription.patientPhone || ""}
-                        onChange={(e) =>
-                          updateField("patientPhone", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="۰۹۱۲۳۴۵۶۷۸۹"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-card border">
+        {/* Main Form Content - No ScrollArea, Full Height */}
+        <div className="flex-1 overflow-y-auto space-y-6 py-4">
+          {/* Section 1: Patient Information */}
+          <Card id="patient" className="border-l-4 border-l-blue-500">
+            <CardHeader className="bg-blue-50/50 dark:bg-blue-950/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">اطلاعات بیمار</CardTitle>
+                  <CardDescription>مشخصات فردی و سوابق پزشکی</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-card border">
+                  <div>
                     <Label
-                      htmlFor="allergies"
+                      htmlFor="patientName"
+                      className="text-sm font-medium"
+                    >
+                      نام کامل بیمار *
+                    </Label>
+                    <Input
+                      id="patientName"
+                      value={editablePrescription.patientName || ""}
+                      onChange={(e) =>
+                        updateField("patientName", e.target.value)
+                      }
+                      className="mt-1.5"
+                      placeholder="نام و نام خانوادگی"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="patientAge" className="text-sm font-medium">
+                      سن
+                    </Label>
+                    <Input
+                      id="patientAge"
+                      value={editablePrescription.patientAge || ""}
+                      onChange={(e) =>
+                        updateField("patientAge", e.target.value)
+                      }
+                      className="mt-1.5"
+                      placeholder="مثال: 35 سال"
+                    />
+                  </div>
+                  <div>
+                    <Label
+                      htmlFor="patientGender"
+                      className="text-sm font-medium"
+                    >
+                      جنسیت
+                    </Label>
+                    <Select
+                      value={editablePrescription.patientGender || ""}
+                      onValueChange={(value) =>
+                        updateField("patientGender", value)
+                      }
+                    >
+                      <SelectTrigger className="mt-1.5 text-foreground">
+                        <SelectValue placeholder="انتخاب جنسیت" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="مرد" className="text-foreground">
+                          مرد
+                        </SelectItem>
+                        <SelectItem value="زن" className="text-foreground">
+                          زن
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label
+                      htmlFor="patientPhone"
+                      className="text-sm font-medium"
+                    >
+                      <Phone className="h-3 w-3 inline ml-1" />
+                      شماره تماس
+                    </Label>
+                    <Input
+                      id="patientPhone"
+                      value={editablePrescription.patientPhone || ""}
+                      onChange={(e) =>
+                        updateField("patientPhone", e.target.value)
+                      }
+                      className="mt-1.5"
+                      placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg bg-card border">
+                  <Label
+                    htmlFor="allergies"
+                    className="text-sm font-medium flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4 text-amber-500" />
+                    آلرژی‌ها
+                  </Label>
+                  <Textarea
+                    id="allergies"
+                    value={editablePrescription.allergies?.join(", ") || ""}
+                    onChange={(e) =>
+                      updateField(
+                        "allergies",
+                        e.target.value
+                          .split(",")
+                          .map((a) => a.trim())
+                          .filter((a) => a)
+                      )
+                    }
+                    className="mt-1.5"
+                    placeholder="مثال: پنی‌سیلین، آسپرین، بادام‌زمینی"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    آلرژی‌ها را با کاما جدا کنید
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-card border">
+                  <Label
+                    htmlFor="pastMedicalHistory"
+                    className="text-sm font-medium"
+                  >
+                    سوابق پزشکی
+                  </Label>
+                  <Textarea
+                    id="pastMedicalHistory"
+                    value={editablePrescription.pastMedicalHistory || ""}
+                    onChange={(e) =>
+                      updateField("pastMedicalHistory", e.target.value)
+                    }
+                    className="mt-1.5"
+                    placeholder="سوابق بیماری‌ها، جراحی‌ها، بستری‌ها"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section Separator */}
+          <div className="flex items-center justify-center">
+            <div className="h-px w-32 bg-border"></div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground mx-2 rotate-180" />
+            <div className="h-px w-32 bg-border"></div>
+          </div>
+
+          {/* Section 2: Clinical Information */}
+          <Card id="clinical" className="border-l-4 border-l-green-500">
+            <CardHeader className="bg-green-50/50 dark:bg-green-950/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <Stethoscope className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">معاینه بالینی</CardTitle>
+                    <CardDescription>
+                      تشخیص، علائم حیاتی و اطلاعات پزشک
+                    </CardDescription>
+                  </div>
+                </div>
+                {hasAIClinicalData && (
+                  <Badge
+                    variant="outline"
+                    className="bg-green-50 text-green-700 border-green-200"
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    تکمیل شده با AI
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                {/* Chief Complaint & Diagnosis */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-card border">
+                  <div className="md:col-span-2">
+                    <Label
+                      htmlFor="chiefComplaint"
                       className="text-sm font-medium flex items-center gap-2"
                     >
-                      <AlertCircle className="h-4 w-4 text-amber-500" />
-                      آلرژی‌ها
+                      شکایت اصلی
+                      {editablePrescription.chiefComplaint && (
+                        <Sparkles className="h-3 w-3 text-green-500" />
+                      )}
                     </Label>
-                    <Textarea
-                      id="allergies"
-                      value={editablePrescription.allergies?.join(", ") || ""}
+                    <Input
+                      id="chiefComplaint"
+                      value={editablePrescription.chiefComplaint || ""}
                       onChange={(e) =>
-                        updateField(
-                          "allergies",
-                          e.target.value
-                            .split(",")
-                            .map((a) => a.trim())
-                            .filter((a) => a)
-                        )
+                        updateField("chiefComplaint", e.target.value)
                       }
                       className="mt-1.5"
-                      placeholder="مثال: پنی‌سیلین، آسپرین، بادام‌زمینی"
-                      rows={3}
+                      placeholder="شکایت اصلی بیمار"
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      آلرژی‌ها را با کاما جدا کنید
-                    </p>
                   </div>
-
-                  <div className="p-4 rounded-lg bg-card border">
-                    <Label
-                      htmlFor="pastMedicalHistory"
-                      className="text-sm font-medium"
-                    >
-                      سوابق پزشکی
+                  <div className="md:col-span-2">
+                    <Label htmlFor="diagnosis" className="text-sm font-medium">
+                      تشخیص *
                     </Label>
-                    <Textarea
-                      id="pastMedicalHistory"
-                      value={editablePrescription.pastMedicalHistory || ""}
-                      onChange={(e) =>
-                        updateField("pastMedicalHistory", e.target.value)
-                      }
+                    <Input
+                      id="diagnosis"
+                      value={editablePrescription.diagnosis || ""}
+                      onChange={(e) => updateField("diagnosis", e.target.value)}
                       className="mt-1.5"
-                      placeholder="سوابق بیماری‌ها، جراحی‌ها، بستری‌ها"
-                      rows={3}
+                      placeholder="تشخیص بیماری"
                     />
                   </div>
                 </div>
-              </TabsContent>
 
-              {/* Clinical Information Tab */}
-              <TabsContent value="clinical" className="p-4 sm:p-6">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <Stethoscope className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-semibold">معاینه بالینی</h3>
-                    </div>
-                    {hasAIClinicalData && (
-                      <Badge
-                        variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200"
+                {/* Vital Signs */}
+                <div className="p-4 rounded-lg bg-card border">
+                  <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    علائم حیاتی
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                    <div>
+                      <Label
+                        htmlFor="pulseRate"
+                        className="text-xs font-medium"
                       >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        تکمیل شده با AI
-                      </Badge>
-                    )}
+                        <Heart className="h-3 w-3 inline ml-1 text-rose-500" />
+                        PR{" "}
+                      </Label>
+                      <Input
+                        id="pulseRate"
+                        value={editablePrescription.pulseRate || ""}
+                        onChange={(e) =>
+                          updateField("pulseRate", e.target.value)
+                        }
+                        className="mt-1.5 text-sm"
+                        placeholder="۷۲"
+                      />
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="bloodPressure"
+                        className="text-xs font-medium"
+                      >
+                        <Activity className="h-3 w-3 inline ml-1 text-blue-500" />
+                        BP
+                      </Label>
+                      <Input
+                        id="bloodPressure"
+                        value={editablePrescription.bloodPressure || ""}
+                        onChange={(e) =>
+                          updateField("bloodPressure", e.target.value)
+                        }
+                        className="mt-1.5 text-sm"
+                        placeholder="120.80"
+                      />
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="temperature"
+                        className="text-xs font-medium"
+                      >
+                        <Thermometer className="h-3 w-3 inline ml-1 text-amber-500" />
+                        Temp
+                      </Label>
+                      <Input
+                        id="temperature"
+                        value={editablePrescription.temperature || ""}
+                        onChange={(e) =>
+                          updateField("temperature", e.target.value)
+                        }
+                        className="mt-1.5 text-sm"
+                        placeholder="36.8"
+                      />
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="respiratoryRate"
+                        className="text-xs font-medium"
+                      >
+                        <Activity className="h-3 w-3 inline ml-1 text-green-500" />
+                        RR
+                      </Label>
+                      <Input
+                        id="respiratoryRate"
+                        value={editablePrescription.respiratoryRate || ""}
+                        onChange={(e) =>
+                          updateField("respiratoryRate", e.target.value)
+                        }
+                        className="mt-1.5 text-sm"
+                        placeholder="16"
+                      />
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="oxygenSaturation"
+                        className="text-xs font-medium"
+                      >
+                        SpO₂
+                      </Label>
+                      <Input
+                        id="oxygenSaturation"
+                        value={editablePrescription.oxygenSaturation || ""}
+                        onChange={(e) =>
+                          updateField("oxygenSaturation", e.target.value)
+                        }
+                        className="mt-1.5 text-sm"
+                        placeholder="98"
+                      />
+                    </div>
                   </div>
+                </div>
 
-                  <div className="bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-200 rounded-lg p-4 mb-6">
+                {/* Doctor and Clinic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg bg-card border">
+                  <div>
+                    <Label htmlFor="doctorName" className="text-sm font-medium">
+                      نام پزشک
+                    </Label>
+                    <Input
+                      id="doctorName"
+                      value={editablePrescription.doctorName || ""}
+                      onChange={(e) =>
+                        updateField("doctorName", e.target.value)
+                      }
+                      className="mt-1.5"
+                      placeholder="نام پزشک معالج"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="clinicName" className="text-sm font-medium">
+                      نام مرکز درمانی
+                    </Label>
+                    <Input
+                      id="clinicName"
+                      value={editablePrescription.clinicName || ""}
+                      onChange={(e) =>
+                        updateField("clinicName", e.target.value)
+                      }
+                      className="mt-1.5"
+                      placeholder="نام کلینیک یا بیمارستان"
+                    />
+                  </div>
+                  <div>
+                    <Label
+                      htmlFor="doctorFree"
+                      className="text-sm font-medium flex items-center gap-2"
+                    >
+                      <DollarSign className="h-4 w-4" />
+                      هزینه ویزیت
+                    </Label>
+                    <Input
+                      id="doctorFree"
+                      value={editablePrescription.doctorFree || ""}
+                      onChange={(e) =>
+                        updateField("doctorFree", e.target.value)
+                      }
+                      className="mt-1.5"
+                      placeholder="مثال: ۵۰,۰۰۰ افغانی"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section Separator */}
+          <div className="flex items-center justify-center">
+            <div className="h-px w-32 bg-border"></div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground mx-2 rotate-180" />
+            <div className="h-px w-32 bg-border"></div>
+          </div>
+
+          {/* Section 3: Medicines */}
+          <Card id="medicines" className="border-l-4 border-l-purple-500">
+            <CardHeader className="bg-purple-50/50 dark:bg-purple-950/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                    <Pill className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">داروها و تجویزات</CardTitle>
+                    <CardDescription>
+                      لیست داروهای تجویز شده و دستورات
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-sm">
+                    {medicinesCount} دارو
+                  </Badge>
+                  <Button
+                    onClick={addMedicine}
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    افزودن دارو
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                {medicinesCount > 0 && editablePrescription.diagnosis && (
+                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg p-4">
                     <div className="flex items-center gap-3">
-                      <Brain className="h-5 w-5 text-blue-600" />
+                      <Sparkles className="h-5 w-5 text-emerald-600" />
                       <div>
-                        <h4 className="font-medium text-blue-800">
-                          اطلاعات بالینی
+                        <h4 className="font-medium text-emerald-800">
+                          داروهای پیشنهادی AI
                         </h4>
-                        <p className="text-sm text-blue-700">
-                          شکایت اصلی و علائم بیمار را برای معاینه دقیق وارد
-                          کنید.
+                        <p className="text-sm text-emerald-700">
+                          داروهای پیشنهادی بر اساس تشخیص "
+                          {editablePrescription.diagnosis}"
                         </p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Chief Complaint & Diagnosis */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-card border">
-                    <div className="md:col-span-2">
-                      <Label
-                        htmlFor="chiefComplaint"
-                        className="text-sm font-medium flex items-center gap-2"
-                      >
-                        شکایت اصلی
-                        {editablePrescription.chiefComplaint && (
-                          <Sparkles className="h-3 w-3 text-green-500" />
+                )}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[800px]">
+                      <thead>
+                        <tr className="bg-muted/50 border-b">
+                          <th className="text-right p-3 text-sm font-medium">
+                            نام دارو *
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            دوز *
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            فرم
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            تعداد *
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            مدت *
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            راه مصرف
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            توضیحات
+                          </th>
+                          <th className="text-right p-3 text-sm font-medium">
+                            عملیات
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {editablePrescription.medicines.map(
+                          (medicine, index) => (
+                            <tr
+                              key={medicine.id || index}
+                              className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+                            >
+                              <td className="p-3">
+                                <Input
+                                  value={medicine.medicine || ""}
+                                  onChange={(e) =>
+                                    updateMedicine(
+                                      index,
+                                      "medicine",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="نام دارو"
+                                  className="w-full text-sm text-foreground"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <Input
+                                  value={medicine.dosage || ""}
+                                  onChange={(e) =>
+                                    updateMedicine(
+                                      index,
+                                      "dosage",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="مثال: ۵۰۰ میلی‌گرم"
+                                  className="w-full text-sm text-foreground"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <Select
+                                  value={medicine.form || "tablet"}
+                                  onValueChange={(value) =>
+                                    updateMedicine(index, "form", value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-full text-sm h-9 text-foreground data-[placeholder]:text-muted-foreground">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem
+                                      value="tablet"
+                                      className="text-foreground"
+                                    >
+                                      tablet
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="capsule"
+                                      className="text-foreground"
+                                    >
+                                      capsule
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="syrup"
+                                      className="text-foreground"
+                                    >
+                                      syrup
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="injection"
+                                      className="text-foreground"
+                                    >
+                                      injection
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="drop"
+                                      className="text-foreground"
+                                    >
+                                      drop
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="cream"
+                                      className="text-foreground"
+                                    >
+                                      cream
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="ointment"
+                                      className="text-foreground"
+                                    >
+                                      ointment
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="spray"
+                                      className="text-foreground"
+                                    >
+                                      spray
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </td>
+                              <td className="p-3">
+                                <Input
+                                  value={medicine.frequency || ""}
+                                  onChange={(e) =>
+                                    updateMedicine(
+                                      index,
+                                      "frequency",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="مثال: هر ۸ ساعت"
+                                  className="w-full text-sm text-foreground"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <Input
+                                  value={medicine.duration || ""}
+                                  onChange={(e) =>
+                                    updateMedicine(
+                                      index,
+                                      "duration",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="مثال: ۷ روز"
+                                  className="w-full text-sm text-foreground"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <Select
+                                  value={medicine.route || "oral"}
+                                  onValueChange={(value) =>
+                                    updateMedicine(index, "route", value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-full text-sm h-9 text-foreground data-[placeholder]:text-muted-foreground">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem
+                                      value="oral"
+                                      className="text-foreground"
+                                    >
+                                      oral
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="topical"
+                                      className="text-foreground"
+                                    >
+                                      topical
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="injection"
+                                      className="text-foreground"
+                                    >
+                                      injection
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="nasal"
+                                      className="text-foreground"
+                                    >
+                                      nasal
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="ophthalmic"
+                                      className="text-foreground"
+                                    >
+                                      ophthalmic
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="otic"
+                                      className="text-foreground"
+                                    >
+                                      otic
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </td>
+                              <td className="p-3">
+                                <Input
+                                  value={medicine.notes || ""}
+                                  onChange={(e) =>
+                                    updateMedicine(
+                                      index,
+                                      "notes",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="دستور مصرف"
+                                  className="w-full text-sm text-foreground"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => removeMedicine(index)}
+                                      disabled={
+                                        editablePrescription.medicines
+                                          .length === 1
+                                      }
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>حذف دارو</TooltipContent>
+                                </Tooltip>
+                              </td>
+                            </tr>
+                          )
                         )}
-                      </Label>
-                      <Input
-                        id="chiefComplaint"
-                        value={editablePrescription.chiefComplaint || ""}
-                        onChange={(e) =>
-                          updateField("chiefComplaint", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="شکایت اصلی بیمار"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label
-                        htmlFor="diagnosis"
-                        className="text-sm font-medium"
-                      >
-                        تشخیص *
-                      </Label>
-                      <Input
-                        id="diagnosis"
-                        value={editablePrescription.diagnosis || ""}
-                        onChange={(e) =>
-                          updateField("diagnosis", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="تشخیص بیماری"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Vital Signs */}
-                  <div className="p-4 rounded-lg bg-card border">
-                    <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-primary" />
-                      علائم حیاتی
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                      <div>
-                        <Label
-                          htmlFor="pulseRate"
-                          className="text-xs font-medium"
-                        >
-                          <Heart className="h-3 w-3 inline ml-1 text-rose-500" />
-                          نبض
-                        </Label>
-                        <Input
-                          id="pulseRate"
-                          value={editablePrescription.pulseRate || ""}
-                          onChange={(e) =>
-                            updateField("pulseRate", e.target.value)
-                          }
-                          className="mt-1.5 text-sm"
-                          placeholder="۷۲"
-                        />
-                      </div>
-                      <div>
-                        <Label
-                          htmlFor="bloodPressure"
-                          className="text-xs font-medium"
-                        >
-                          فشار خون
-                        </Label>
-                        <Input
-                          id="bloodPressure"
-                          value={editablePrescription.bloodPressure || ""}
-                          onChange={(e) =>
-                            updateField("bloodPressure", e.target.value)
-                          }
-                          className="mt-1.5 text-sm"
-                          placeholder="۱۲۰/۸۰"
-                        />
-                      </div>
-                      <div>
-                        <Label
-                          htmlFor="temperature"
-                          className="text-xs font-medium"
-                        >
-                          <Thermometer className="h-3 w-3 inline ml-1 text-amber-500" />
-                          دما
-                        </Label>
-                        <Input
-                          id="temperature"
-                          value={editablePrescription.temperature || ""}
-                          onChange={(e) =>
-                            updateField("temperature", e.target.value)
-                          }
-                          className="mt-1.5 text-sm"
-                          placeholder="۳۶.۸"
-                        />
-                      </div>
-                      <div>
-                        <Label
-                          htmlFor="respiratoryRate"
-                          className="text-xs font-medium"
-                        >
-                          تنفس
-                        </Label>
-                        <Input
-                          id="respiratoryRate"
-                          value={editablePrescription.respiratoryRate || ""}
-                          onChange={(e) =>
-                            updateField("respiratoryRate", e.target.value)
-                          }
-                          className="mt-1.5 text-sm"
-                          placeholder="۱۶"
-                        />
-                      </div>
-                      <div>
-                        <Label
-                          htmlFor="oxygenSaturation"
-                          className="text-xs font-medium"
-                        >
-                          SPO2
-                        </Label>
-                        <Input
-                          id="oxygenSaturation"
-                          value={editablePrescription.oxygenSaturation || ""}
-                          onChange={(e) =>
-                            updateField("oxygenSaturation", e.target.value)
-                          }
-                          className="mt-1.5 text-sm"
-                          placeholder="۹۸"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Doctor and Clinic Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg bg-card border">
-                    <div>
-                      <Label
-                        htmlFor="doctorName"
-                        className="text-sm font-medium"
-                      >
-                        نام پزشک
-                      </Label>
-                      <Input
-                        id="doctorName"
-                        value={editablePrescription.doctorName || ""}
-                        onChange={(e) =>
-                          updateField("doctorName", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="نام پزشک معالج"
-                      />
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="clinicName"
-                        className="text-sm font-medium"
-                      >
-                        نام مرکز درمانی
-                      </Label>
-                      <Input
-                        id="clinicName"
-                        value={editablePrescription.clinicName || ""}
-                        onChange={(e) =>
-                          updateField("clinicName", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="نام کلینیک یا بیمارستان"
-                      />
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="doctorFree"
-                        className="text-sm font-medium flex items-center gap-2"
-                      >
-                        <DollarSign className="h-4 w-4" />
-                        هزینه ویزیت
-                      </Label>
-                      <Input
-                        id="doctorFree"
-                        value={editablePrescription.doctorFree || ""}
-                        onChange={(e) =>
-                          updateField("doctorFree", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="مثال: ۵۰,۰۰۰ افغانی"
-                      />
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </TabsContent>
 
-              {/* Medicines Tab */}
-              <TabsContent value="medicines" className="p-4 sm:p-6">
-                <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                      <Pill className="h-5 w-5 text-primary" />
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          داروها و تجویزات
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          لیست داروهای تجویز شده
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={addMedicine}
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      افزودن دارو
-                    </Button>
-                  </div>
+                {/* Additional Instructions */}
+                <div className="p-4 rounded-lg bg-card border">
+                  <Label htmlFor="instructions" className="text-sm font-medium">
+                    دستورات اضافی
+                  </Label>
+                  <Textarea
+                    id="instructions"
+                    value={editablePrescription.instructions || ""}
+                    onChange={(e) =>
+                      updateField("instructions", e.target.value)
+                    }
+                    className="mt-1.5"
+                    placeholder="دستورات اضافی برای بیمار"
+                    rows={3}
+                  />
+                </div>
 
-                  {medicinesCount > 0 && (
-                    <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg p-4 mb-6">
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="h-5 w-5 text-emerald-600" />
-                        <div>
-                          <h4 className="font-medium text-emerald-800">
-                            داروهای پیشنهادی AI
-                          </h4>
-                          <p className="text-sm text-emerald-700">
-                            داروهای پیشنهادی بر اساس تشخیص "
-                            {editablePrescription.diagnosis}"
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[800px]">
-                        <thead>
-                          <tr className="bg-muted/50 border-b">
-                            <th className="text-right p-3 text-sm font-medium">
-                              نام دارو *
-                            </th>
-                            <th className="text-right p-3 text-sm font-medium">
-                              دوز *
-                            </th>
-                            <th className="text-right p-3 text-sm font-medium">
-                              فرم
-                            </th>
-                            <th className="text-right p-3 text-sm font-medium">
-                              تناوب *
-                            </th>
-                            <th className="text-right p-3 text-sm font-medium">
-                              مدت *
-                            </th>
-                            <th className="text-right p-3 text-sm font-medium">
-                              راه مصرف
-                            </th>
-                            <th className="text-right p-3 text-sm font-medium">
-                              توضیحات
-                            </th>
-                            <th className="text-right p-3 text-sm font-medium">
-                              عملیات
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {editablePrescription.medicines.map(
-                            (medicine, index) => (
-                              <tr
-                                key={medicine.id || index}
-                                className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
-                              >
-                                <td className="p-3">
-                                  <Input
-                                    value={medicine.medicine || ""}
-                                    onChange={(e) =>
-                                      updateMedicine(
-                                        index,
-                                        "medicine",
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="نام دارو"
-                                    className="w-full text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <Input
-                                    value={medicine.dosage || ""}
-                                    onChange={(e) =>
-                                      updateMedicine(
-                                        index,
-                                        "dosage",
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="مثال: ۵۰۰ میلی‌گرم"
-                                    className="w-full text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <Select
-                                    value={medicine.form || "tablet"}
-                                    onValueChange={(value) =>
-                                      updateMedicine(index, "form", value)
-                                    }
-                                  >
-                                    <SelectTrigger className="w-full text-sm h-9">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="tablet">
-                                        قرص
-                                      </SelectItem>
-                                      <SelectItem value="capsule">
-                                        کپسول
-                                      </SelectItem>
-                                      <SelectItem value="syrup">
-                                        شربت
-                                      </SelectItem>
-                                      <SelectItem value="injection">
-                                        آمپول
-                                      </SelectItem>
-                                      <SelectItem value="drop">قطره</SelectItem>
-                                      <SelectItem value="cream">کرم</SelectItem>
-                                      <SelectItem value="ointment">
-                                        پماد
-                                      </SelectItem>
-                                      <SelectItem value="spray">
-                                        اسپری
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </td>
-                                <td className="p-3">
-                                  <Input
-                                    value={medicine.frequency || ""}
-                                    onChange={(e) =>
-                                      updateMedicine(
-                                        index,
-                                        "frequency",
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="مثال: هر ۸ ساعت"
-                                    className="w-full text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <Input
-                                    value={medicine.duration || ""}
-                                    onChange={(e) =>
-                                      updateMedicine(
-                                        index,
-                                        "duration",
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="مثال: ۷ روز"
-                                    className="w-full text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <Select
-                                    value={medicine.route || "oral"}
-                                    onValueChange={(value) =>
-                                      updateMedicine(index, "route", value)
-                                    }
-                                  >
-                                    <SelectTrigger className="w-full text-sm h-9">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="oral">
-                                        دهانی
-                                      </SelectItem>
-                                      <SelectItem value="topical">
-                                        موضعی
-                                      </SelectItem>
-                                      <SelectItem value="injection">
-                                        تزریقی
-                                      </SelectItem>
-                                      <SelectItem value="nasal">
-                                        بینی
-                                      </SelectItem>
-                                      <SelectItem value="ophthalmic">
-                                        چشمی
-                                      </SelectItem>
-                                      <SelectItem value="otic">گوشی</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </td>
-                                <td className="p-3">
-                                  <Input
-                                    value={medicine.notes || ""}
-                                    onChange={(e) =>
-                                      updateMedicine(
-                                        index,
-                                        "notes",
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="دستور مصرف"
-                                    className="w-full text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => removeMedicine(index)}
-                                        disabled={
-                                          editablePrescription.medicines
-                                            .length === 1
-                                        }
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>حذف دارو</TooltipContent>
-                                  </Tooltip>
-                                </td>
-                              </tr>
-                            )
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Additional Instructions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-card border">
                     <Label
-                      htmlFor="instructions"
-                      className="text-sm font-medium"
+                      htmlFor="followUp"
+                      className="text-sm font-medium flex items-center gap-2"
                     >
-                      دستورات اضافی
+                      <Calendar className="h-4 w-4" />
+                      زمان پیگیری
                     </Label>
-                    <Textarea
-                      id="instructions"
-                      value={editablePrescription.instructions || ""}
-                      onChange={(e) =>
-                        updateField("instructions", e.target.value)
-                      }
+                    <Input
+                      id="followUp"
+                      value={editablePrescription.followUp || ""}
+                      onChange={(e) => updateField("followUp", e.target.value)}
                       className="mt-1.5"
-                      placeholder="دستورات اضافی برای بیمار"
-                      rows={3}
+                      placeholder="مثال: در صورت عدم بهبود پس از ۳ روز مراجعه شود"
                     />
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg bg-card border">
-                      <Label
-                        htmlFor="followUp"
-                        className="text-sm font-medium flex items-center gap-2"
-                      >
-                        <Calendar className="h-4 w-4" />
-                        زمان پیگیری
-                      </Label>
-                      <Input
-                        id="followUp"
-                        value={editablePrescription.followUp || ""}
-                        onChange={(e) =>
-                          updateField("followUp", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="مثال: در صورت عدم بهبود پس از ۳ روز مراجعه شود"
-                      />
-                    </div>
-                    <div className="p-4 rounded-lg bg-card border">
-                      <Label
-                        htmlFor="restrictions"
-                        className="text-sm font-medium"
-                      >
-                        محدودیت‌ها
-                      </Label>
-                      <Input
-                        id="restrictions"
-                        value={editablePrescription.restrictions || ""}
-                        onChange={(e) =>
-                          updateField("restrictions", e.target.value)
-                        }
-                        className="mt-1.5"
-                        placeholder="محدودیت‌های غذایی یا فعالیتی"
-                      />
-                    </div>
+                  <div className="p-4 rounded-lg bg-card border">
+                    <Label
+                      htmlFor="restrictions"
+                      className="text-sm font-medium"
+                    >
+                      محدودیت‌ها
+                    </Label>
+                    <Input
+                      id="restrictions"
+                      value={editablePrescription.restrictions || ""}
+                      onChange={(e) =>
+                        updateField("restrictions", e.target.value)
+                      }
+                      className="mt-1.5"
+                      placeholder="محدودیت‌های غذایی یا فعالیتی"
+                    />
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Action Buttons Footer */}
-            <CardFooter className="border-t p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
+        {/* Action Buttons Footer */}
+        <Card className="mt-4 shadow-lg border-t">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div
                     className={`h-2 w-2 rounded-full ${
@@ -1091,35 +1119,47 @@ export function EnhancedPrescriptionForm({
                   />
                   <span>{isSaving ? "در حال ذخیره..." : "آماده ذخیره"}</span>
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={onCancel}
-                    disabled={isSaving}
-                    className="flex items-center gap-2"
-                  >
-                    انصراف
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ذخیره نسخه
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4" />
-                        ذخیره نسخه
-                      </>
-                    )}
-                  </Button>
+                <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>✓ بخش‌ها تکمیل شده:</span>
+                  <span className="font-medium">
+                    {
+                      ["patientName", "diagnosis"].filter(
+                        (field) =>
+                          editablePrescription[field as keyof Prescription]
+                      ).length
+                    }
+                    /2
+                  </span>
                 </div>
               </div>
-            </CardFooter>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onCancel}
+                  disabled={isSaving}
+                  className="flex items-center gap-2"
+                >
+                  انصراف
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ذخیره نسخه
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      ذخیره نسخه
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

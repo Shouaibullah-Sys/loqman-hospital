@@ -231,7 +231,6 @@ export default function DashboardClient({
     "create" | "presets" | "history" | "amounts"
   >("create");
   const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
-  const [notifications, setNotifications] = useState<number>(3);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const queryClient = useQueryClient();
@@ -363,7 +362,7 @@ export default function DashboardClient({
         <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md supports-backdrop-filter:bg-card/60">
           <div className="container flex h-16 items-center justify-between px-4">
             {/* Mobile Menu Button */}
-            <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex items-center gap-2 lg:hidden z-50">
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -371,11 +370,9 @@ export default function DashboardClient({
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[280px] sm:w-[350px]">
-                  <div className="flex flex-col h-full">
+                  <div className="flex flex-col h-full px-3">
                     <div className="flex items-center gap-3 mb-8">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Stethoscope className="h-6 w-6 text-primary" />
-                      </div>
+                      <div className="p-2 bg-primary/10 rounded-lg"></div>
                       <div>
                         <h2 className="text-lg font-bold">سیستم نسخه‌پیچی</h2>
                         <p className="text-xs text-muted-foreground">
@@ -396,7 +393,7 @@ export default function DashboardClient({
                           <p className="font-medium text-sm">
                             {user.fullName || "کاربر سیستم"}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate w-42">
                             {user.primaryEmailAddress?.emailAddress}
                           </p>
                         </div>
@@ -545,30 +542,6 @@ export default function DashboardClient({
               {/* User Actions */}
               <div className="flex items-center gap-3">
                 <ThemeToggle />
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative">
-                      <Bell className="h-5 w-5" />
-                      {notifications > 0 && (
-                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
-                          {notifications}
-                        </span>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>اعلانات</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Settings className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>تنظیمات</TooltipContent>
-                </Tooltip>
-
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -577,7 +550,6 @@ export default function DashboardClient({
                   </TooltipTrigger>
                   <TooltipContent>راهنما</TooltipContent>
                 </Tooltip>
-
                 <div className="flex items-center gap-3">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -636,18 +608,9 @@ export default function DashboardClient({
                 </div>
               </div>
             </div>
-
             {/* Mobile User Actions */}
             <div className="flex items-center gap-2 lg:hidden">
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                {notifications > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                    {notifications}
-                  </span>
-                )}
-              </Button>
             </div>
           </div>
         </header>
@@ -695,136 +658,6 @@ export default function DashboardClient({
 
         {/* Main Content */}
         <div className="container mx-auto px-4 py-6 sm:py-8">
-          {/* Dashboard Overview Cards - Mobile Optimized */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Plus className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm sm:text-base">ایجاد نسخه جدید</span>
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  نسخه‌نویس هوشمند با AI
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4">
-                  علائم بیمار را وارد کنید تا سیستم به صورت هوشمند نسخه کامل را
-                  تولید کند.
-                </p>
-                <Button
-                  onClick={() => setActiveTab("create")}
-                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-xs sm:text-sm"
-                  size="sm"
-                >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                  شروع کنید
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-accent/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <div className="p-2 bg-accent/10 rounded-lg">
-                    <Activity className="h-4 w-4 text-accent-foreground" />
-                  </div>
-                  <span className="text-sm sm:text-base">آمار سریع</span>
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  عملکرد امروز
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-xs sm:text-sm mb-1">
-                      <span className="text-muted-foreground">
-                        نسخه‌های امروز
-                      </span>
-                      <span className="font-medium">{todayPrescriptions}</span>
-                    </div>
-                    <Progress
-                      value={(todayPrescriptions / 50) * 100}
-                      className="h-1.5 sm:h-2"
-                    />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs sm:text-sm mb-1">
-                      <span className="text-muted-foreground">
-                        نسخه‌های این ماه
-                      </span>
-                      <span className="font-medium">
-                        {monthlyPrescriptions}
-                      </span>
-                    </div>
-                    <Progress
-                      value={(monthlyPrescriptions / 300) * 100}
-                      className="h-1.5 sm:h-2"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-secondary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <div className="p-2 bg-secondary/10 rounded-lg">
-                    <TrendingUp className="h-4 w-4 text-secondary-foreground" />
-                  </div>
-                  <span className="text-sm sm:text-base">دسترسی سریع</span>
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  امکانات پرکاربرد
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveTab("presets")}
-                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
-                  >
-                    <FileText className="h-4 w-4 text-primary" />
-                    <span className="text-[10px] sm:text-xs">
-                      قالب‌های پزشکی
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveTab("history")}
-                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
-                  >
-                    <History className="h-4 w-4 text-primary" />
-                    <span className="text-[10px] sm:text-xs">تاریخچه</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveTab("amounts")}
-                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
-                  >
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    <span className="text-[10px] sm:text-xs">بل ها</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-auto py-2 sm:py-3 flex-col gap-1 sm:gap-2 text-xs"
-                  >
-                    <Shield className="h-4 w-4 text-primary" />
-                    <span className="text-[10px] sm:text-xs">بیمه‌ها</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Main Tabs - Fixed for Mobile & Dark Mode */}
           <Card className="mb-6 sm:mb-8 border-border/50 shadow-sm overflow-hidden">
             <CardContent className="p-0">
