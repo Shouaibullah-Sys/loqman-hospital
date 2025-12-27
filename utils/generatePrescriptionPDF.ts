@@ -2,8 +2,6 @@
 
 import { jsPDF } from "jspdf";
 import { format } from "date-fns";
-import { format as formatJalali } from "date-fns-jalali";
-import "../vazirmatn-normal.js";
 
 export interface Medication {
   medicine: string;
@@ -75,7 +73,7 @@ export interface PDFConfig {
 
   // Colors
   colors: {
-    primary: [number, number, number]; // [R, G, B]
+    primary: [number, number, number];
     accent: [number, number, number];
     bgLight: [number, number, number];
     textDark: [number, number, number];
@@ -88,8 +86,6 @@ export interface PDFConfig {
   // Typography
   typography: {
     defaultFont: string;
-    persianFont: string;
-    fallbackFonts: string[];
     fontSizes: {
       title: number;
       subtitle: number;
@@ -120,8 +116,8 @@ export interface PDFConfig {
   // Layout Structure
   layout: {
     twoColumn: boolean;
-    leftColumnWidth: number; // percentage of page width
-    rightColumnWidth: number; // percentage of page width
+    leftColumnWidth: number;
+    rightColumnWidth: number;
     columnGap: number;
     sectionSpacing: number;
     blockSpacing: number;
@@ -133,10 +129,10 @@ export interface PDFConfig {
     show: boolean;
     boxStyle: "rounded" | "flat" | "shadow";
     borderRadius: number;
-    columns: number; // Number of columns in patient info grid
+    columns: number;
     showLabels: boolean;
     labelStyle: "bold" | "normal" | "italic";
-    include: string[]; // Fields to include: ['name', 'age', 'gender', 'date', 'weight', 'height', 'bmi', 'phone']
+    include: string[];
   };
 
   // Clinical History (Left Column)
@@ -151,20 +147,20 @@ export interface PDFConfig {
       socialHistory: boolean;
     };
     boxStyle: "rounded" | "flat";
-    boxHeight: number; // Default height for text boxes
+    boxHeight: number;
   };
 
   // Vital Signs
   vitalSigns: {
     show: boolean;
-    gridColumns: number; // Number of columns in the grid
+    gridColumns: number;
     cell: {
       width: number;
       height: number;
       gap: number;
       borderRadius: number;
     };
-    include: string[]; // ['pulse', 'bp', 'heart', 'temp', 'respiratory', 'oxygen']
+    include: string[];
     showUnits: boolean;
   };
 
@@ -172,9 +168,8 @@ export interface PDFConfig {
   medications: {
     show: boolean;
     table: {
-      headers: string[]; // Custom header titles
-      persianHeaders: string[]; // Persian header titles
-      columnWidths: number[]; // Widths for each column
+      headers: string[];
+      columnWidths: number[];
       rowHeight: number;
       stripedRows: boolean;
       showRowNumbers: boolean;
@@ -190,7 +185,7 @@ export interface PDFConfig {
       followUp: boolean;
       restrictions: boolean;
     };
-    indent: number; // Indentation for content
+    indent: number;
   };
 
   // Doctor Signature
@@ -200,7 +195,6 @@ export interface PDFConfig {
     lineWidth: number;
     lineLength: number;
     includeTitle: boolean;
-    includePersian: boolean;
   };
 
   // Footer
@@ -212,27 +206,11 @@ export interface PDFConfig {
     height: number;
   };
 
-  // Language Settings
-  language: {
-    primary: "en" | "fa" | "bilingual";
-    titles: {
-      // Customizable titles for all sections
-      patientInfo: { en: string; fa: string };
-      clinicalHistory: { en: string; fa: string };
-      vitalSigns: { en: string; fa: string };
-      chiefComplaint: { en: string; fa: string };
-      physicalExam: { en: string; fa: string };
-      medications: { en: string; fa: string };
-      instructions: { en: string; fa: string };
-      signature: { en: string; fa: string };
-    };
-  };
-
   // Page Break Control
   pageBreak: {
     enabled: boolean;
-    minBottomMargin: number; // Minimum space required at bottom before page break
-    repeatHeaders: boolean; // Repeat table headers on new page
+    minBottomMargin: number;
+    repeatHeaders: boolean;
   };
 
   // Debug/Development
@@ -265,8 +243,6 @@ export const defaultPDFConfig: PDFConfig = {
 
   typography: {
     defaultFont: "helvetica",
-    persianFont: "vazirmatn",
-    fallbackFonts: ["arabic", "helvetica"],
     fontSizes: {
       title: 16,
       subtitle: 14,
@@ -295,8 +271,8 @@ export const defaultPDFConfig: PDFConfig = {
 
   layout: {
     twoColumn: true,
-    leftColumnWidth: 0.25, // 25% of page width
-    rightColumnWidth: 0.75, // 75% of page width
+    leftColumnWidth: 0.25,
+    rightColumnWidth: 0.75,
     columnGap: 15,
     sectionSpacing: 25,
     blockSpacing: 15,
@@ -360,7 +336,6 @@ export const defaultPDFConfig: PDFConfig = {
         "Duration",
         "Instructions",
       ],
-      persianHeaders: ["شماره", "دوا", "مقدار", "فراوانی", "مدت", "دستورات"],
       columnWidths: [30, 100, 70, 70, 70, 80],
       rowHeight: 20,
       stripedRows: true,
@@ -385,7 +360,6 @@ export const defaultPDFConfig: PDFConfig = {
     lineWidth: 0.5,
     lineLength: 200,
     includeTitle: true,
-    includePersian: true,
   },
 
   footer: {
@@ -394,20 +368,6 @@ export const defaultPDFConfig: PDFConfig = {
     showPageNumbers: true,
     showDigitalNote: true,
     height: 40,
-  },
-
-  language: {
-    primary: "bilingual",
-    titles: {
-      patientInfo: { en: "Patient Information", fa: "معلومات مریض" },
-      clinicalHistory: { en: "Clinical History", fa: "تاریخچه کلینیکی" },
-      vitalSigns: { en: "Vital Signs", fa: "علائم حیاتی" },
-      chiefComplaint: { en: "Chief Complaint", fa: "شکایت اصلی" },
-      physicalExam: { en: "Physical Examination", fa: "معاینه فزیکی" },
-      medications: { en: "Prescribed Medications", fa: "دواهای تجویز شده" },
-      instructions: { en: "Additional Instructions", fa: "دستورات اضافی" },
-      signature: { en: "Medical Practitioner", fa: "داکتر معالج" },
-    },
   },
 
   pageBreak: {
@@ -430,53 +390,6 @@ function formatVitalValue(value?: string): string {
     return "N/A";
   }
   return value.trim();
-}
-
-function hasPersianOrArabic(text: string): boolean {
-  const persianRange =
-    /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
-  return persianRange.test(text);
-}
-
-function addPersianTextToPDF(
-  doc: jsPDF,
-  text: string,
-  x: number,
-  y: number,
-  options?: any,
-  config: PDFConfig = defaultPDFConfig
-) {
-  const style = options?.style || "normal";
-  const fontSize = options?.fontSize || doc.getFontSize();
-
-  const currentFontSize = doc.getFontSize();
-  if (options?.fontSize) {
-    doc.setFontSize(fontSize);
-  }
-
-  try {
-    doc.setFont(config.typography.persianFont, style);
-    doc.text(text, x, y, options);
-  } catch (e) {
-    console.warn(
-      "Primary Persian font failed, using fallback:",
-      text.substring(0, 20)
-    );
-
-    for (const fallbackFont of config.typography.fallbackFonts) {
-      try {
-        doc.setFont(fallbackFont, style);
-        doc.text(text, x, y, options);
-        break;
-      } catch (e2) {
-        continue;
-      }
-    }
-  }
-
-  if (options?.fontSize) {
-    doc.setFontSize(currentFontSize);
-  }
 }
 
 function checkPageBreak(
@@ -537,7 +450,6 @@ export async function generatePrescriptionPDF(
     },
     signature: { ...defaultPDFConfig.signature, ...userConfig?.signature },
     footer: { ...defaultPDFConfig.footer, ...userConfig?.footer },
-    language: { ...defaultPDFConfig.language, ...userConfig?.language },
     pageBreak: { ...defaultPDFConfig.pageBreak, ...userConfig?.pageBreak },
     debug: { ...defaultPDFConfig.debug, ...userConfig?.debug },
   };
@@ -616,24 +528,6 @@ export async function generatePrescriptionPDF(
     doc.setFontSize(config.typography.fontSizes.title);
     doc.setTextColor(...config.colors.primary);
     doc.text(prescription.clinicName, centerX, y, { align: "center" });
-
-    // Persian clinic name (if available)
-    if (config.language.primary !== "en") {
-      y += 18;
-      const clinicNamePersian = getPersianTranslation(prescription.clinicName);
-      addPersianTextToPDF(
-        doc,
-        clinicNamePersian,
-        centerX,
-        y,
-        {
-          align: "center",
-          style: "normal",
-          fontSize: config.typography.fontSizes.subtitle,
-        },
-        config
-      );
-    }
   }
 
   // Doctor Information
@@ -645,30 +539,13 @@ export async function generatePrescriptionPDF(
   doc.setTextColor(...config.colors.textDark);
   doc.text(prescription.doctorName, centerX, y, { align: "center" });
 
-  if (config.language.primary !== "en") {
-    y += 16;
-    addPersianTextToPDF(
-      doc,
-      prescription.doctorName,
-      centerX,
-      y,
-      {
-        align: "center",
-        style: "normal",
-        fontSize: config.typography.fontSizes.body,
-      },
-      config
-    );
-  }
-
   // Doctor License Number
   if (prescription.doctorLicenseNumber) {
     y += 18;
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.small);
-    doc.text(`License: ${prescription.doctorLicenseNumber}`, centerX, y, {
-      align: "center",
-    });
+    const licenseText = `License: ${prescription.doctorLicenseNumber}`;
+    doc.text(licenseText, centerX, y, { align: "center" });
   }
 
   // Separator Line
@@ -721,32 +598,13 @@ export async function generatePrescriptionPDF(
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.heading);
     doc.setTextColor(...config.colors.primary);
-    doc.text(
-      config.language.titles.patientInfo.en,
-      config.page.margins.left + 20,
-      y + 5
-    );
-
-    if (config.language.primary !== "en") {
-      addPersianTextToPDF(
-        doc,
-        config.language.titles.patientInfo.fa,
-        pageWidth - config.page.margins.right - 20,
-        y + 5,
-        {
-          align: "right",
-          style: "normal",
-          fontSize: config.typography.fontSizes.heading,
-        },
-        config
-      );
-    }
+    doc.text("Patient Information", config.page.margins.left + 20, y + 5);
 
     // Patient Info Grid
     const patientInfoRows = createPatientInfoRows(prescription, config);
     const columnWidth = patientBoxWidth / config.patientInfo.columns;
     const rowHeight = 16;
-    let rowY = y + 35;
+    let rowY = y + 25;
 
     patientInfoRows.forEach((info, index) => {
       const col = index % config.patientInfo.columns;
@@ -770,21 +628,8 @@ export async function generatePrescriptionPDF(
       doc.setFontSize(config.typography.fontSizes.small);
       doc.setTextColor(...config.colors.textDark);
 
-      const valueContainsPersian = hasPersianOrArabic(info.value);
-      const labelWidth = config.patientInfo.showLabels ? 60 : 0;
-
-      if (valueContainsPersian) {
-        addPersianTextToPDF(
-          doc,
-          info.value,
-          xPos + labelWidth,
-          yPos,
-          { style: "normal", fontSize: config.typography.fontSizes.small },
-          config
-        );
-      } else {
-        doc.text(info.value, xPos + labelWidth, yPos);
-      }
+      const labelWidth = config.patientInfo.showLabels ? 80 : 0;
+      doc.text(info.value, xPos + labelWidth, yPos);
     });
 
     y += patientBoxHeight + config.layout.blockSpacing;
@@ -835,9 +680,8 @@ export async function generatePrescriptionPDF(
       prescription.medicalExams?.length
     ) {
       sections.push({
-        type: "list",
-        titleEn: "Lab Exams",
-        titleFa: "آزمایشات",
+        type: "list" as const,
+        title: "Lab Exams",
         items: prescription.medicalExams,
       });
     }
@@ -847,9 +691,8 @@ export async function generatePrescriptionPDF(
       prescription.allergies?.length
     ) {
       sections.push({
-        type: "list",
-        titleEn: "Allergies",
-        titleFa: "حساسیت ها",
+        type: "list" as const,
+        title: "Allergies",
         items: prescription.allergies,
       });
     }
@@ -859,9 +702,8 @@ export async function generatePrescriptionPDF(
       prescription.currentMedications?.length
     ) {
       sections.push({
-        type: "list",
-        titleEn: "Current Medications",
-        titleFa: "دواهای فعلی",
+        type: "list" as const,
+        title: "Current Medications",
         items: prescription.currentMedications,
       });
     }
@@ -871,9 +713,8 @@ export async function generatePrescriptionPDF(
       prescription.pastMedicalHistory
     ) {
       sections.push({
-        type: "text",
-        titleEn: "Past Medical History",
-        titleFa: "تاریخچه طبی",
+        type: "text" as const,
+        title: "Past Medical History",
         content: prescription.pastMedicalHistory,
       });
     }
@@ -883,9 +724,8 @@ export async function generatePrescriptionPDF(
       prescription.familyHistory
     ) {
       sections.push({
-        type: "text",
-        titleEn: "Family History",
-        titleFa: "تاریخچه فامیلی",
+        type: "text" as const,
+        title: "Family History",
         content: prescription.familyHistory,
       });
     }
@@ -895,9 +735,8 @@ export async function generatePrescriptionPDF(
       prescription.socialHistory
     ) {
       sections.push({
-        type: "text",
-        titleEn: "Social History",
-        titleFa: "تاریخچه اجتماعی",
+        type: "text" as const,
+        title: "Social History",
         content: prescription.socialHistory,
       });
     }
@@ -1015,50 +854,53 @@ function createPatientInfoRows(
 
   const fieldMap: Record<string, { label: string; value: string }> = {
     name: {
-      label: "Name / نام:",
+      label: "Name",
       value: prescription.patientName || "N/A",
     },
     age: {
-      label: "Age / عمر:",
+      label: "Age",
       value: prescription.patientAge
         ? `${prescription.patientAge} years`
         : "N/A",
     },
     gender: {
-      label: "Gender / جنس:",
+      label: "Gender",
       value: prescription.patientGender || "N/A",
     },
     date: {
-      label: "Date / تاریخ:",
+      label: "Date",
       value: prescription.date
-        ? formatJalali(new Date(prescription.date), "yyyy/MM/dd")
-        : formatJalali(new Date(), "yyyy/MM/dd"),
+        ? format(new Date(prescription.date), "yyyy/MM/dd")
+        : format(new Date(), "yyyy/MM/dd"),
     },
     weight: {
-      label: "Weight / وزن:",
+      label: "Weight",
       value: prescription.weight ? `${prescription.weight} kg` : "N/A",
     },
     height: {
-      label: "Height / قد:",
+      label: "Height",
       value: prescription.height ? `${prescription.height} cm` : "N/A",
     },
     bmi: {
-      label: "BMI:",
+      label: "BMI",
       value: prescription.bmi || "N/A",
     },
     phone: {
-      label: "Phone / تلیفون:",
+      label: "Phone",
       value: prescription.patientPhone || "N/A",
     },
     address: {
-      label: "Address / آدرس:",
+      label: "Address",
       value: prescription.patientAddress || "N/A",
     },
   };
 
   for (const field of fields) {
     if (fieldMap[field]) {
-      rows.push(fieldMap[field]);
+      rows.push({
+        label: fieldMap[field].label,
+        value: fieldMap[field].value,
+      });
     }
   }
 
@@ -1077,22 +919,7 @@ function addLeftColumnSection(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.subheading);
   doc.setTextColor(...config.colors.primary);
-  doc.text(section.titleEn, x, y);
-
-  if (config.language.primary !== "en") {
-    addPersianTextToPDF(
-      doc,
-      section.titleFa,
-      x + width,
-      y,
-      {
-        align: "right",
-        style: "normal",
-        fontSize: config.typography.fontSizes.subheading,
-      },
-      config
-    );
-  }
+  doc.text(section.title, x, y);
 
   y += config.layout.blockSpacing;
 
@@ -1123,44 +950,14 @@ function addLeftColumnSection(
 
     section.items.forEach((item: string, index: number) => {
       const itemText = `${index + 1}. ${item}`;
-      if (hasPersianOrArabic(item)) {
-        addPersianTextToPDF(
-          doc,
-          itemText,
-          x + 10,
-          y + 8 + index * 15,
-          {
-            style: "normal",
-            fontSize: config.typography.fontSizes.small,
-          },
-          config
-        );
-      } else {
-        doc.text(itemText, x + 10, y + 8 + index * 15);
-      }
+      doc.text(itemText, x + 10, y + 8 + index * 15);
     });
   } else {
     const contentLines = doc.splitTextToSize(section.content, width - 20);
-    if (hasPersianOrArabic(section.content)) {
-      contentLines.forEach((line: string, index: number) => {
-        addPersianTextToPDF(
-          doc,
-          line,
-          x + 10,
-          y + 8 + index * 12,
-          {
-            style: "normal",
-            fontSize: config.typography.fontSizes.small,
-          },
-          config
-        );
-      });
-    } else {
-      doc.setFont(config.typography.defaultFont, "normal");
-      doc.setFontSize(config.typography.fontSizes.small);
-      doc.setTextColor(...config.colors.textDark);
-      doc.text(contentLines, x + 10, y + 8);
-    }
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.textDark);
+    doc.text(contentLines, x + 10, y + 8);
   }
 
   y += boxHeight + config.layout.blockSpacing;
@@ -1177,9 +974,9 @@ function addRightColumnSection(
   config: PDFConfig
 ): number {
   const sectionTitles = {
-    vitalSigns: config.language.titles.vitalSigns,
-    chiefComplaint: config.language.titles.chiefComplaint,
-    physicalExam: config.language.titles.physicalExam,
+    vitalSigns: "Vital Signs",
+    chiefComplaint: "Chief Complaint",
+    physicalExam: "Physical Examination",
   };
 
   const title = sectionTitles[sectionType as keyof typeof sectionTitles];
@@ -1191,22 +988,7 @@ function addRightColumnSection(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  doc.text(title.en, x + 15, y + 5);
-
-  if (config.language.primary !== "en") {
-    addPersianTextToPDF(
-      doc,
-      title.fa,
-      x + width,
-      y + 5,
-      {
-        align: "right",
-        style: "normal",
-        fontSize: config.typography.fontSizes.heading,
-      },
-      config
-    );
-  }
+  doc.text(title, x + 15, y + 5);
 
   y += 25;
 
@@ -1247,42 +1029,36 @@ function addVitalSignsGrid(
       label: "Pulse Rate",
       value: prescription.pulseRate,
       unit: "bpm",
-      persian: "ضربان نبض",
     },
     {
       key: "bp",
       label: "Blood Pressure",
       value: prescription.bloodPressure,
       unit: "",
-      persian: "فشار خون",
     },
     {
       key: "heart",
       label: "Heart Rate",
       value: prescription.heartRate,
       unit: "bpm",
-      persian: "ضربان قلب",
     },
     {
       key: "temp",
       label: "Temperature",
       value: prescription.temperature,
       unit: "°C",
-      persian: "حرارت بدن",
     },
     {
       key: "respiratory",
       label: "Respiratory Rate",
       value: prescription.respiratoryRate,
       unit: "/min",
-      persian: "معدل تنفس",
     },
     {
       key: "oxygen",
       label: "Oxygen Saturation",
       value: prescription.oxygenSaturation,
       unit: "%",
-      persian: "اکسیجن خون",
     },
   ];
 
@@ -1329,20 +1105,6 @@ function addVitalSignsGrid(
     doc.setTextColor(...config.colors.primary);
     doc.text(vital.label, cellX + 5, cellY + 12);
 
-    // Persian label
-    addPersianTextToPDF(
-      doc,
-      vital.persian,
-      cellX + cellWidth - 5,
-      cellY + 12,
-      {
-        align: "right",
-        style: "normal",
-        fontSize: 8,
-      },
-      config
-    );
-
     // Value
     const valueText = config.vitalSigns.showUnits
       ? `${vital.value} ${vital.unit}`.trim()
@@ -1372,26 +1134,10 @@ function addTextContent(
 ): number {
   const lines = doc.splitTextToSize(text, width - 20);
 
-  if (hasPersianOrArabic(text)) {
-    lines.forEach((line: string, index: number) => {
-      addPersianTextToPDF(
-        doc,
-        line,
-        x + 10,
-        y + index * 12,
-        {
-          style: "normal",
-          fontSize: config.typography.fontSizes.body,
-        },
-        config
-      );
-    });
-  } else {
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.body);
-    doc.setTextColor(...config.colors.textDark);
-    doc.text(lines, x + 10, y);
-  }
+  doc.setFont(config.typography.defaultFont, "normal");
+  doc.setFontSize(config.typography.fontSizes.body);
+  doc.setTextColor(...config.colors.textDark);
+  doc.text(lines, x + 10, y);
 
   y += lines.length * 12 + 20;
   return y;
@@ -1405,8 +1151,6 @@ function addMedicationsTable(
   prescription: VoicePrescription,
   config: PDFConfig
 ): number {
-  const title = config.language.titles.medications;
-
   // Section header
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y - 8, 5, 22, "F");
@@ -1414,22 +1158,7 @@ function addMedicationsTable(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  doc.text(title.en, x + 15, y + 5);
-
-  if (config.language.primary !== "en") {
-    addPersianTextToPDF(
-      doc,
-      title.fa,
-      x + width,
-      y + 5,
-      {
-        align: "right",
-        style: "normal",
-        fontSize: config.typography.fontSizes.heading,
-      },
-      config
-    );
-  }
+  doc.text("Prescribed Medications", x + 15, y + 5);
 
   y += 25;
 
@@ -1440,27 +1169,12 @@ function addMedicationsTable(
     doc.setTextColor(...config.colors.textDark);
     doc.text("No medications prescribed.", x + 12, y);
 
-    if (config.language.primary !== "en") {
-      addPersianTextToPDF(
-        doc,
-        "هیچ دوا تجویز نگردیده است.",
-        x + width,
-        y,
-        {
-          align: "right",
-          style: "normal",
-        },
-        config
-      );
-    }
-
     y += 20;
     return y;
   }
 
-  // Table headers
+  // Create headers
   const headers = config.medications.table.headers;
-  const persianHeaders = config.medications.table.persianHeaders;
   const columnWidths = config.medications.table.columnWidths;
 
   doc.setFont(config.typography.defaultFont, "bold");
@@ -1474,29 +1188,6 @@ function addMedicationsTable(
       maxWidth: columnWidths[index] - padding * 2,
     });
     xPos += columnWidths[index];
-  });
-
-  // Persian headers
-  xPos = x + width;
-  persianHeaders.reverse().forEach((header, index) => {
-    const columnIndex = persianHeaders.length - 1 - index;
-    const padding = columnIndex === 0 ? 2 : 8;
-
-    addPersianTextToPDF(
-      doc,
-      header,
-      xPos - padding,
-      y,
-      {
-        align: "right",
-        style: "normal",
-        fontSize: config.typography.fontSizes.small,
-        maxWidth: columnWidths[columnIndex] - padding * 2,
-      },
-      config
-    );
-
-    xPos -= columnWidths[columnIndex];
   });
 
   // Header separator
@@ -1559,26 +1250,9 @@ function addMedicationsTable(
 
     rowData.forEach((data, colIndex) => {
       const padding = colIndex === 0 ? 2 : 8;
-
-      if (hasPersianOrArabic(data)) {
-        addPersianTextToPDF(
-          doc,
-          data,
-          xPos + padding,
-          y,
-          {
-            style: "normal",
-            fontSize: config.typography.fontSizes.small,
-            maxWidth: columnWidths[colIndex] - padding * 2,
-          },
-          config
-        );
-      } else {
-        doc.text(data, xPos + padding, y, {
-          maxWidth: columnWidths[colIndex] - padding * 2,
-        });
-      }
-
+      doc.text(data, xPos + padding, y, {
+        maxWidth: columnWidths[colIndex] - padding * 2,
+      });
       xPos += columnWidths[colIndex];
     });
 
@@ -1598,23 +1272,7 @@ function addMedicationsTable(
         doc.setFont(config.typography.defaultFont, "italic");
         doc.setFontSize(config.typography.fontSizes.tiny);
         doc.setTextColor(120, 120, 120);
-
-        if (hasPersianOrArabic(detailsText)) {
-          addPersianTextToPDF(
-            doc,
-            detailsText,
-            x + 45,
-            y,
-            {
-              style: "italic",
-              fontSize: config.typography.fontSizes.tiny,
-              maxWidth: width - 55,
-            },
-            config
-          );
-        } else {
-          doc.text(detailsText, x + 45, y, { maxWidth: width - 55 });
-        }
+        doc.text(detailsText, x + 45, y, { maxWidth: width - 55 });
 
         y += 12;
       }
@@ -1634,8 +1292,6 @@ function addInstructionsSection(
   prescription: VoicePrescription,
   config: PDFConfig
 ): number {
-  const title = config.language.titles.instructions;
-
   // Section header
   doc.setFillColor(...config.colors.accent);
   doc.rect(x, y - 8, 5, 22, "F");
@@ -1643,22 +1299,7 @@ function addInstructionsSection(
   doc.setFont(config.typography.defaultFont, "bold");
   doc.setFontSize(config.typography.fontSizes.heading);
   doc.setTextColor(...config.colors.primary);
-  doc.text(title.en, x + 15, y + 5);
-
-  if (config.language.primary !== "en") {
-    addPersianTextToPDF(
-      doc,
-      title.fa,
-      x + width,
-      y + 5,
-      {
-        align: "right",
-        style: "normal",
-        fontSize: config.typography.fontSizes.heading,
-      },
-      config
-    );
-  }
+  doc.text("Additional Instructions", x + 15, y + 5);
 
   y += 25;
 
@@ -1667,7 +1308,7 @@ function addInstructionsSection(
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.subheading);
     doc.setTextColor(...config.colors.primary);
-    doc.text("General Instructions:", x + 10, y);
+    doc.text("General Instructions", x + 10, y);
 
     y = addTextContent(
       doc,
@@ -1685,7 +1326,7 @@ function addInstructionsSection(
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.subheading);
     doc.setTextColor(...config.colors.primary);
-    doc.text("Follow-up:", x + 10, y);
+    doc.text("Follow-up", x + 10, y);
 
     y = addTextContent(
       doc,
@@ -1703,7 +1344,7 @@ function addInstructionsSection(
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.subheading);
     doc.setTextColor(...config.colors.primary);
-    doc.text("Restrictions:", x + 10, y);
+    doc.text("Restrictions", x + 10, y);
 
     y = addTextContent(
       doc,
@@ -1755,9 +1396,7 @@ function addSignature(
     prescription.doctorName,
     signatureX + config.signature.lineLength / 2,
     y + 20,
-    {
-      align: "center",
-    }
+    { align: "center" }
   );
 
   // Title
@@ -1766,41 +1405,10 @@ function addSignature(
     doc.setFontSize(config.typography.fontSizes.body);
     doc.setTextColor(...config.colors.textDark);
     doc.text(
-      config.language.titles.signature.en,
+      "Medical Practitioner",
       signatureX + config.signature.lineLength / 2,
       y + 35,
-      {
-        align: "center",
-      }
-    );
-  }
-
-  // Persian text
-  if (config.signature.includePersian && config.language.primary !== "en") {
-    addPersianTextToPDF(
-      doc,
-      prescription.doctorName,
-      signatureX + config.signature.lineLength / 2,
-      y + 55,
-      {
-        align: "center",
-        style: "normal",
-        fontSize: config.typography.fontSizes.subheading,
-      },
-      config
-    );
-
-    addPersianTextToPDF(
-      doc,
-      config.language.titles.signature.fa,
-      signatureX + config.signature.lineLength / 2,
-      y + 70,
-      {
-        align: "center",
-        style: "normal",
-        fontSize: config.typography.fontSizes.body,
-      },
-      config
+      { align: "center" }
     );
   }
 }
@@ -1819,34 +1427,25 @@ function addFooter(
     doc.setFont(config.typography.defaultFont, "normal");
     doc.setFontSize(config.typography.fontSizes.tiny);
     doc.setTextColor(120, 120, 120);
-    doc.text(
-      `Prescription ID: ${prescription._id}`,
-      config.page.margins.left,
-      footerY
-    );
+    const idText = `Prescription ID: ${prescription._id}`;
+    doc.text(idText, config.page.margins.left, footerY);
   }
 
   // Page numbers
   if (config.footer.showPageNumbers) {
-    doc.text(`Page 1 of 1`, pageWidth - config.page.margins.right, footerY, {
+    const pageText = `Page 1 of 1`;
+    doc.text(pageText, pageWidth - config.page.margins.right, footerY, {
       align: "right",
     });
   }
 
   // Digital note
-  if (config.footer.showDigitalNote && config.language.primary !== "en") {
-    const digitalText = "این یک نسخه دیجیتال تولید شده توسط کامپیوتر است.";
-    addPersianTextToPDF(
-      doc,
-      digitalText,
+  if (config.footer.showDigitalNote) {
+    doc.text(
+      "This is a digitally generated prescription.",
       pageWidth / 2,
       footerY + 15,
-      {
-        align: "center",
-        style: "normal",
-        fontSize: config.typography.fontSizes.tiny,
-      },
-      config
+      { align: "center" }
     );
   }
 }
@@ -1880,77 +1479,12 @@ function hasAdditionalInstructions(prescription: VoicePrescription): boolean {
   );
 }
 
-function getPersianTranslation(text: string): string {
-  const translations: Record<string, string> = {
-    "Specialty Clinic": "کلینیک تخصصی",
-    "Imam Reza Hospital": "شفاخانه امام رضا",
-    "Noor Medical Center": "مرکز طبی نور",
-    "Children's Hospital": "شفاخانه کودکان",
-    "Dr. Ahmad Farid": "داکتر احمد فرید",
-    "Dr. Maryam Hosseini": "داکتر مریم حسینی",
-    "Dr. Ali Rezaei": "داکتر علی رضایی",
-    "Dr. Sara Mohammadi": "داکتر سارا محمدی",
-  };
-  return translations[text] || text;
-}
-
 // Export with the expected name for backward compatibility
 export const downloadPrescriptionPDF = generatePrescriptionPDF;
 
 // ==================== USAGE EXAMPLES ====================
 
 /*
-Example 1: Basic usage with default config
+Example 1: English prescription
 generatePrescriptionPDF(prescriptionData);
-
-Example 2: Customize colors and layout
-generatePrescriptionPDF(prescriptionData, {
-  colors: {
-    primary: [220, 38, 38], // Red primary color
-    accent: [16, 185, 129], // Green accent
-  },
-  typography: {
-    defaultFont: "times",
-    fontSizes: {
-      title: 18,
-      body: 11,
-    }
-  }
-});
-
-Example 3: Single column layout
-generatePrescriptionPDF(prescriptionData, {
-  layout: {
-    twoColumn: false,
-  },
-  clinicalHistory: {
-    show: false,
-  }
-});
-
-Example 4: Minimalist design
-generatePrescriptionPDF(prescriptionData, {
-  colors: {
-    primary: [0, 0, 0],
-    accent: [0, 0, 0],
-    bgLight: [255, 255, 255],
-  },
-  logo: {
-    enabled: false,
-  },
-  patientInfo: {
-    boxStyle: "flat",
-  }
-});
-
-Example 5: Persian-only layout
-generatePrescriptionPDF(prescriptionData, {
-  language: {
-    primary: "fa",
-    titles: {
-      patientInfo: { en: "", fa: "اطلاعات بیمار" },
-      medications: { en: "", fa: "داروهای تجویزی" },
-    }
-  }
-});
 */

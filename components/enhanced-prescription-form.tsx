@@ -1032,33 +1032,82 @@ export function EnhancedPrescriptionForm({
                         </div>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <div className="space-y-4">
-                        <div className="border border-border/50 dark:border-border/30 rounded-lg overflow-hidden">
+                    <td className="p-6">
+                      <div className="space-y-6">
+                        <div className="border border-border/50 dark:border-border/30 rounded-lg overflow-hidden bg-card">
                           <div className="overflow-x-auto">
-                            <table className="w-full min-w-[1000px]">
+                            <table className="w-full min-w-[1100px]">
                               <thead>
-                                <tr className="bg-muted/50 border-b dark:border-border/50">
-                                  <th className="text-right p-3 text-sm font-medium w-[200px]">
-                                    Medication Name *
+                                <tr className="bg-muted/70 dark:border-border/50">
+                                  <th className="text-right p-4 text-sm font-medium w-[220px] border-r border-border/20">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-semibold">
+                                        Medication Name
+                                      </span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        * Required
+                                      </span>
+                                    </div>
                                   </th>
-                                  <th className="text-right p-3 text-sm font-medium w-[120px]">
-                                    Dosage *
+                                  <th className="text-right p-4 text-sm font-medium w-[140px] border-r border-border/20">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-semibold">
+                                        Dosage
+                                      </span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        * Required
+                                      </span>
+                                    </div>
                                   </th>
-                                  <th className="text-right p-3 text-sm font-medium w-[120px]">
-                                    Frequency *
+                                  <th className="text-right p-4 text-sm font-medium w-[140px] border-r border-border/20">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-semibold">
+                                        Frequency
+                                      </span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        * Required
+                                      </span>
+                                    </div>
                                   </th>
-                                  <th className="text-right p-3 text-sm font-medium w-[100px]">
-                                    Duration *
+                                  <th className="text-right p-4 text-sm font-medium w-[130px] border-r border-border/20">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-semibold">
+                                        Duration
+                                      </span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        * Required
+                                      </span>
+                                    </div>
                                   </th>
-                                  <th className="text-right p-3 text-sm font-medium w-[120px]">
-                                    Form
+                                  <th className="text-right p-4 text-sm font-medium w-[130px] border-r border-border/20">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-semibold">
+                                        Form
+                                      </span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        Optional
+                                      </span>
+                                    </div>
                                   </th>
-                                  <th className="text-right p-3 text-sm font-medium w-[150px]">
-                                    Instructions
+                                  <th className="text-right p-4 text-sm font-medium w-[160px] border-r border-border/20">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-semibold">
+                                        Instructions
+                                      </span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        Optional
+                                      </span>
+                                    </div>
                                   </th>
-                                  <th className="text-right p-3 text-sm font-medium w-[80px]">
-                                    Actions
+                                  <th className="text-right p-4 text-sm font-medium w-[100px]">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-semibold">
+                                        Actions
+                                      </span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        Manage
+                                      </span>
+                                    </div>
                                   </th>
                                 </tr>
                               </thead>
