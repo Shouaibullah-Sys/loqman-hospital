@@ -16,6 +16,17 @@ export interface FormMedicine {
   updatedAt?: string;
 }
 
+export interface PrescriptionTest {
+  id: string;
+  prescriptionId: string;
+  testId: string;
+  testName: string;
+  notes?: string | null;
+  priority?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Prescription {
   id: string;
   userId: string; // Required in database
@@ -26,6 +37,7 @@ export interface Prescription {
   patientPhone?: string | null;
   patientAddress?: string | null;
   medicines: FormMedicine[]; // Required array, populated from database
+  prescriptionTests?: PrescriptionTest[]; // Optional array of prescription tests
   chiefComplaint?: string | null;
   pulseRate?: string | null;
   heartRate?: string | null;

@@ -87,6 +87,7 @@ const DOSAGE_OPTIONS = [
   { value: "100mcg", label: "100 mcg" },
   { value: "5ml", label: "5 ml" },
   { value: "10ml", label: "10 ml" },
+  { value: "custom", label: "Other (Custom)" },
 ];
 
 // Use translated frequency options from utility
@@ -519,7 +520,7 @@ export function EnhancedPrescriptionForm({
                             <SelectTrigger className="mt-1.5">
                               <SelectValue placeholder="Select Gender" />
                             </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
+                            <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
                               <SelectItem value="Male">Male</SelectItem>
                               <SelectItem value="Female">Female</SelectItem>
                               <SelectItem value="Other">Other</SelectItem>
@@ -965,30 +966,15 @@ export function EnhancedPrescriptionForm({
                           >
                             Treating Physician Name
                           </Label>
-                          <Select
+                          <Input
+                            id="doctorName"
                             value={editablePrescription.doctorName || ""}
-                            onValueChange={(value) =>
-                              updateField("doctorName", value)
+                            onChange={(e) =>
+                              updateField("doctorName", e.target.value)
                             }
-                          >
-                            <SelectTrigger className="mt-1.5">
-                              <SelectValue placeholder="Select Doctor" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                              <SelectItem value="Dr. Ahmad Farid">
-                                Dr. Ahmad Farid
-                              </SelectItem>
-                              <SelectItem value="Dr. Maryam Hosseini">
-                                Dr. Maryam Hosseini
-                              </SelectItem>
-                              <SelectItem value="Dr. Ali Rezaei">
-                                Dr. Ali Rezaei
-                              </SelectItem>
-                              <SelectItem value="Dr. Sara Mohammadi">
-                                Dr. Sara Mohammadi
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            className="mt-1.5"
+                            placeholder="Enter doctor name"
+                          />
                         </div>
                         <div>
                           <Label
@@ -997,30 +983,15 @@ export function EnhancedPrescriptionForm({
                           >
                             Medical Center Name
                           </Label>
-                          <Select
+                          <Input
+                            id="clinicName"
                             value={editablePrescription.clinicName || ""}
-                            onValueChange={(value) =>
-                              updateField("clinicName", value)
+                            onChange={(e) =>
+                              updateField("clinicName", e.target.value)
                             }
-                          >
-                            <SelectTrigger className="mt-1.5">
-                              <SelectValue placeholder="Select Center" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                              <SelectItem value="Specialty Clinic">
-                                Specialty Clinic
-                              </SelectItem>
-                              <SelectItem value="Imam Reza Hospital">
-                                Imam Reza Hospital
-                              </SelectItem>
-                              <SelectItem value="Noor Medical Center">
-                                Noor Medical Center
-                              </SelectItem>
-                              <SelectItem value="Children's Hospital">
-                                Children's Hospital
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            className="mt-1.5"
+                            placeholder="Enter medical center name"
+                          />
                         </div>
                         <div>
                           <Label
@@ -1030,42 +1001,15 @@ export function EnhancedPrescriptionForm({
                             <DollarSign className="h-4 w-4 inline ml-1" />
                             Visit Fee
                           </Label>
-                          <Select
+                          <Input
+                            id="doctorFree"
                             value={editablePrescription.doctorFree || ""}
-                            onValueChange={(value) =>
-                              updateField("doctorFree", value)
+                            onChange={(e) =>
+                              updateField("doctorFree", e.target.value)
                             }
-                          >
-                            <SelectTrigger className="mt-1.5">
-                              <SelectValue placeholder="Select Fee" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                              <SelectItem value="100 Afghani">
-                                100 Afghani
-                              </SelectItem>
-                              <SelectItem value="150 Afghani">
-                                150 Afghani
-                              </SelectItem>
-                              <SelectItem value="200 Afghani">
-                                200 Afghani
-                              </SelectItem>
-                              <SelectItem value="250 Afghani">
-                                250 Afghani
-                              </SelectItem>
-                              <SelectItem value="300 Afghani">
-                                300 Afghani
-                              </SelectItem>
-                              <SelectItem value="350 Afghani">
-                                350 Afghai
-                              </SelectItem>
-                              <SelectItem value="400 Afghani">
-                                400 Afghani
-                              </SelectItem>
-                              <SelectItem value="500 Afghani">
-                                500 Afghani
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            className="mt-1.5"
+                            placeholder="Enter visit fee"
+                          />
                         </div>
                       </div>
                     </td>
@@ -1160,30 +1104,54 @@ export function EnhancedPrescriptionForm({
                                         />
                                       </td>
                                       <td className="p-3">
-                                        <Select
-                                          value={medicine.dosage || ""}
-                                          onValueChange={(value) =>
-                                            updateMedicine(
-                                              index,
-                                              "dosage",
-                                              value
-                                            )
-                                          }
-                                        >
-                                          <SelectTrigger className="w-full text-sm h-9">
-                                            <SelectValue placeholder="Select dosage" />
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                                            {DOSAGE_OPTIONS.map((option) => (
-                                              <SelectItem
-                                                key={option.value}
-                                                value={option.label}
-                                              >
-                                                {option.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                        {medicine.dosage === "custom" ||
+                                        !DOSAGE_OPTIONS.find(
+                                          (opt) =>
+                                            opt.label === medicine.dosage &&
+                                            opt.value !== "custom"
+                                        ) ? (
+                                          <Input
+                                            value={
+                                              medicine.dosage === "custom"
+                                                ? ""
+                                                : medicine.dosage
+                                            }
+                                            onChange={(e) =>
+                                              updateMedicine(
+                                                index,
+                                                "dosage",
+                                                e.target.value
+                                              )
+                                            }
+                                            placeholder="Enter dosage (e.g., 300mg)"
+                                            className="w-full text-sm h-9"
+                                          />
+                                        ) : (
+                                          <Select
+                                            value={medicine.dosage || ""}
+                                            onValueChange={(value) =>
+                                              updateMedicine(
+                                                index,
+                                                "dosage",
+                                                value
+                                              )
+                                            }
+                                          >
+                                            <SelectTrigger className="w-full text-sm h-9">
+                                              <SelectValue placeholder="Select dosage" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
+                                              {DOSAGE_OPTIONS.map((option) => (
+                                                <SelectItem
+                                                  key={option.value}
+                                                  value={option.label}
+                                                >
+                                                  {option.label}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        )}
                                       </td>
                                       <td className="p-3">
                                         <Select
@@ -1199,7 +1167,7 @@ export function EnhancedPrescriptionForm({
                                           <SelectTrigger className="w-full text-sm h-9">
                                             <SelectValue placeholder="Select frequency" />
                                           </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
+                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
                                             {FREQUENCY_OPTIONS.map((option) => (
                                               <SelectItem
                                                 key={option.value}
@@ -1225,7 +1193,7 @@ export function EnhancedPrescriptionForm({
                                           <SelectTrigger className="w-full text-sm h-9">
                                             <SelectValue placeholder="Select duration" />
                                           </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
+                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
                                             {DURATION_OPTIONS.map((option) => (
                                               <SelectItem
                                                 key={option.value}
@@ -1247,7 +1215,7 @@ export function EnhancedPrescriptionForm({
                                           <SelectTrigger className="w-full text-sm h-9">
                                             <SelectValue placeholder="Form" />
                                           </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
+                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
                                             <SelectItem value="tablet">
                                               Tablet
                                             </SelectItem>
@@ -1286,7 +1254,7 @@ export function EnhancedPrescriptionForm({
                                           <SelectTrigger className="w-full text-sm h-9">
                                             <SelectValue placeholder="Instructions" />
                                           </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
+                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
                                             <SelectItem value="Before meal">
                                               {translateTiming("Before meal")}
                                             </SelectItem>
@@ -1384,30 +1352,15 @@ export function EnhancedPrescriptionForm({
                           >
                             General Instructions
                           </Label>
-                          <Select
+                          <Input
+                            id="instructions"
                             value={editablePrescription.instructions || ""}
-                            onValueChange={(value) =>
-                              updateField("instructions", value)
+                            onChange={(e) =>
+                              updateField("instructions", e.target.value)
                             }
-                          >
-                            <SelectTrigger className="mt-1.5">
-                              <SelectValue placeholder="Select instructions" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                              <SelectItem value="Adequate rest and regular medication intake">
-                                Adequate rest and regular medication intake
-                              </SelectItem>
-                              <SelectItem value="Drink plenty of water and avoid heavy activity">
-                                Drink plenty of water and avoid heavy activity
-                              </SelectItem>
-                              <SelectItem value="Proper diet and avoiding smoking">
-                                Proper diet and avoiding smoking
-                              </SelectItem>
-                              <SelectItem value="Rest at home and visit if symptoms worsen">
-                                Rest at home and visit if symptoms worsen
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            className="mt-1.5"
+                            placeholder="Enter general instructions"
+                          />
                         </div>
                         <div>
                           <Label
@@ -1417,30 +1370,15 @@ export function EnhancedPrescriptionForm({
                             <Clock className="h-4 w-4 inline ml-1" />
                             Follow-up Time
                           </Label>
-                          <Select
+                          <Input
+                            id="followUp"
                             value={editablePrescription.followUp || ""}
-                            onValueChange={(value) =>
-                              updateField("followUp", value)
+                            onChange={(e) =>
+                              updateField("followUp", e.target.value)
                             }
-                          >
-                            <SelectTrigger className="mt-1.5">
-                              <SelectValue placeholder="Select follow-up time" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                              <SelectItem value="Return if no improvement after 3 days">
-                                Return if no improvement after 3 days
-                              </SelectItem>
-                              <SelectItem value="After one week">
-                                After one week
-                              </SelectItem>
-                              <SelectItem value="After two weeks">
-                                After two weeks
-                              </SelectItem>
-                              <SelectItem value="If symptoms worsen">
-                                If symptoms worsen
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            className="mt-1.5"
+                            placeholder="Enter follow-up time"
+                          />
                         </div>
                         <div className="md:col-span-2">
                           <Label
@@ -1449,30 +1387,15 @@ export function EnhancedPrescriptionForm({
                           >
                             Restrictions and Precautions
                           </Label>
-                          <Select
+                          <Input
+                            id="restrictions"
                             value={editablePrescription.restrictions || ""}
-                            onValueChange={(value) =>
-                              updateField("restrictions", value)
+                            onChange={(e) =>
+                              updateField("restrictions", e.target.value)
                             }
-                          >
-                            <SelectTrigger className="mt-1.5">
-                              <SelectValue placeholder="Select restrictions" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover dark:bg-black text-popover-foreground dark:text-gray-100 border dark:border-gray-800">
-                              <SelectItem value="Avoid driving and operating machinery">
-                                Avoid driving and operating machinery
-                              </SelectItem>
-                              <SelectItem value="Avoid alcohol and smoking">
-                                Avoid alcohol and smoking
-                              </SelectItem>
-                              <SelectItem value="Avoid fatty and spicy foods">
-                                Avoid fatty and spicy foods
-                              </SelectItem>
-                              <SelectItem value="No specific restrictions">
-                                No specific restrictions
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            className="mt-1.5"
+                            placeholder="Enter restrictions and precautions"
+                          />
                         </div>
                       </div>
                     </td>
