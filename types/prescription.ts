@@ -3,13 +3,18 @@ export interface FormMedicine {
   id: string;
   medicine: string;
   dosage: string;
+  dosagePersian?: string; // Persian translation of dosage
   form?: string;
+  formPersian?: string; // Persian translation of form
   frequency: string;
+  frequencyPersian?: string; // Persian translation of frequency
   duration: string;
+  durationPersian?: string; // Persian translation of duration
   route?: string;
   timing?: string;
   withFood?: boolean;
   instructions?: string;
+  instructionsPersian?: string; // Persian translation of instructions
   notes?: string;
   prescriptionId: string;
   createdAt?: string;

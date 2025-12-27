@@ -40,7 +40,79 @@ export const TIMING_TRANSLATIONS = {
   "30_days": "۳۰ روز",
   until_finished: "تا تمام شدن",
   continuous: "مستمر",
+
+  // Dosage translations
+  "250mg": "۲۵۰ میلی‌گرام",
+  "500mg": "۵۰۰ میلی‌گرام",
+  "750mg": "۷۵۰ میلی‌گرام",
+  "1000mg": "۱۰۰۰ میلی‌گرام",
+  "5mg": "۵ میلی‌گرام",
+  "10mg": "۱۰ میلی‌گرام",
+  "20mg": "۲۰ میلی‌گرام",
+  "40mg": "۴۰ میلی‌گرام",
+  "50mcg": "۵۰ میکروگرام",
+  "100mcg": "۱۰۰ میکروگرام",
+  "5ml": "۵ میلی‌لیتر",
+  "10ml": "۱۰ میلی‌لیتر",
+
+  // Common instructions translations
+  "Take with water": "با آب مصرف شود",
+  "Take after meal": "بعد از غذا مصرف شود",
+  "Take before meal": "قبل از غذا مصرف شود",
+  "Take with food": "همراه غذا مصرف شود",
+  "Complete the course": "دوره درمان را کامل کنید",
+  "Do not exceed dose": "از مقدار تجویز شده تجاوز نکنید",
+  "Store at room temperature": "در دمای اتاق نگهداری شود",
+  "Keep away from children": "دور از دسترس اطفال نگهداری شود",
 } as const;
+
+/**
+ * Bilingual medication field interface
+ */
+export interface BilingualMedicationField {
+  english: string;
+  persian: string;
+}
+
+/**
+ * Create a bilingual field from English value with Persian translation
+ */
+export function createBilingualField(
+  english: string,
+  customPersian?: string
+): BilingualMedicationField {
+  const persian = customPersian || translateMedicationField(english);
+  return {
+    english: english || "",
+    persian: persian || "",
+  };
+}
+
+/**
+ * Get display value based on language preference
+ */
+export function getDisplayValue(
+  field: BilingualMedicationField,
+  language: "english" | "persian" = "english"
+): string {
+  return language === "persian" ? field.persian : field.english;
+}
+
+/**
+ * Translate medication field value to Persian
+ */
+export function translateMedicationField(value: string): string {
+  return (
+    TIMING_TRANSLATIONS[value as keyof typeof TIMING_TRANSLATIONS] || value
+  );
+}
+
+/**
+ * Check if a value has a Persian translation available
+ */
+export function hasPersianTranslation(value: string): boolean {
+  return value in TIMING_TRANSLATIONS;
+}
 
 /**
  * Translate medication timing value to Dari Afghani

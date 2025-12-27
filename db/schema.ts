@@ -89,15 +89,20 @@ export const medicines = pgTable("medicines", {
   // Medicine Information
   medicine: text("medicine").notNull(),
   dosage: text("dosage").notNull(),
+  dosagePersian: text("dosage_persian"),
   form: text("form"),
+  formPersian: text("form_persian"),
   frequency: text("frequency"),
+  frequencyPersian: text("frequency_persian"),
   duration: text("duration"),
+  durationPersian: text("duration_persian"),
   route: text("route"),
   timing: text("timing"),
   withFood: boolean("with_food").default(false),
 
   // Additional Information
   instructions: text("instructions"),
+  instructionsPersian: text("instructions_persian"),
   notes: text("notes"),
 
   // System Fields

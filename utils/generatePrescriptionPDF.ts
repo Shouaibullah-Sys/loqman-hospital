@@ -6,10 +6,15 @@ import { format } from "date-fns";
 export interface Medication {
   medicine: string;
   dosage: string;
+  dosagePersian?: string;
   frequency: string;
+  frequencyPersian?: string;
   duration: string;
+  durationPersian?: string;
   instructions: string;
+  instructionsPersian?: string;
   form?: string;
+  formPersian?: string;
   route?: string;
   timing?: string;
   withFood?: boolean;
@@ -69,6 +74,14 @@ export interface PDFConfig {
       left: number;
       right: number;
     };
+  };
+
+  // Language Settings
+  language: {
+    primary: "english" | "persian";
+    fallback: "english" | "persian";
+    showBothLanguages: boolean;
+    autoDetect: boolean;
   };
 
   // Colors
@@ -230,6 +243,13 @@ export const defaultPDFConfig: PDFConfig = {
     margins: { top: 40, bottom: 40, left: 40, right: 40 },
   },
 
+  language: {
+    primary: "english",
+    fallback: "persian",
+    showBothLanguages: false,
+    autoDetect: true,
+  },
+
   colors: {
     primary: [42, 94, 168],
     accent: [66, 133, 244],
@@ -260,7 +280,7 @@ export const defaultPDFConfig: PDFConfig = {
   },
 
   logo: {
-    enabled: true,
+    enabled: false,
     url: "/logo.png",
     width: 80,
     height: 80,
@@ -286,16 +306,7 @@ export const defaultPDFConfig: PDFConfig = {
     columns: 4,
     showLabels: true,
     labelStyle: "bold",
-    include: [
-      "name",
-      "age",
-      "gender",
-      "date",
-      "weight",
-      "height",
-      "bmi",
-      "phone",
-    ],
+    include: ["name", "age", "gender", "date", "weight", "height", "phone"],
   },
 
   clinicalHistory: {
@@ -314,11 +325,11 @@ export const defaultPDFConfig: PDFConfig = {
 
   vitalSigns: {
     show: true,
-    gridColumns: 3,
+    gridColumns: 4,
     cell: {
-      width: 120,
-      height: 35,
-      gap: 5,
+      width: 85,
+      height: 28,
+      gap: 4,
       borderRadius: 3,
     },
     include: ["pulse", "bp", "heart", "temp", "respiratory", "oxygen"],
@@ -384,6 +395,60 @@ export const defaultPDFConfig: PDFConfig = {
 };
 
 // ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Get the appropriate language value from a bilingual medication field
+ */
+function getBilingualValue(
+  englishValue: string | undefined,
+  persianValue: string | undefined,
+  config: PDFConfig
+): string {
+  // If showBothLanguages is true, show both
+  if (config.language.showBothLanguages && englishValue && persianValue) {
+    return `${englishValue} / ${persianValue}`;
+  }
+
+  // If primary language is English
+  if (config.language.primary === "english") {
+    return englishValue || persianValue || "N/A";
+  }
+
+  // If primary language is Persian
+  return persianValue || englishValue || "N/A";
+}
+
+/**
+ * Get medication field with bilingual support
+ */
+function getMedicationField(
+  medication: any,
+  fieldName: string,
+  config: PDFConfig
+): string {
+  const englishValue = medication[fieldName];
+  const persianValue = medication[`${fieldName}Persian`];
+  return getBilingualValue(englishValue, persianValue, config);
+}
+
+/**
+ * Auto-detect language preference based on prescription content
+ */
+function detectLanguagePreference(
+  prescription: VoicePrescription
+): "english" | "persian" {
+  // Check if any medication has Persian values
+  const hasPersianContent = prescription.medicines?.some(
+    (med) =>
+      med.dosagePersian ||
+      med.frequencyPersian ||
+      med.durationPersian ||
+      med.instructionsPersian ||
+      med.formPersian
+  );
+
+  return hasPersianContent ? "persian" : "english";
+}
 
 function formatVitalValue(value?: string): string {
   if (!value || value.trim() === "") {
@@ -480,7 +545,7 @@ export async function generatePrescriptionPDF(
 
   // ==================== HEADER SECTION ====================
 
-  // Logo
+  // Logo disabled - no logo will be displayed
   if (config.logo.enabled) {
     try {
       const response = await fetch(config.logo.url);
@@ -530,75 +595,24 @@ export async function generatePrescriptionPDF(
     doc.text(prescription.clinicName, centerX, y, { align: "center" });
   }
 
-  // Doctor Information
-  y += config.layout.sectionSpacing;
-  y = checkPageBreak(doc, y, 40, config);
-
-  doc.setFont(config.typography.defaultFont, "bold");
-  doc.setFontSize(config.typography.fontSizes.subtitle);
-  doc.setTextColor(...config.colors.textDark);
-  doc.text(prescription.doctorName, centerX, y, { align: "center" });
-
-  // Doctor License Number
-  if (prescription.doctorLicenseNumber) {
-    y += 18;
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.small);
-    const licenseText = `License: ${prescription.doctorLicenseNumber}`;
-    doc.text(licenseText, centerX, y, { align: "center" });
-  }
-
-  // Separator Line
-  y += config.layout.sectionSpacing;
-  doc.setDrawColor(...config.colors.border);
-  doc.setLineWidth(1);
-  doc.line(
-    config.page.margins.left,
-    y,
-    pageWidth - config.page.margins.right,
-    y
-  );
-
   // ==================== PATIENT INFORMATION ====================
 
   if (config.patientInfo.show) {
     y += config.layout.blockSpacing;
+    // Move patient information down by 40 pixels
+    y += 70;
     y = checkPageBreak(doc, y, 100, config);
 
     const patientBoxWidth =
       pageWidth - config.page.margins.left - config.page.margins.right;
-    const patientBoxHeight = 70;
+    const patientBoxHeight = 40;
 
-    // Background Box
-    doc.setFillColor(...config.colors.bgLight);
-    doc.setDrawColor(...config.colors.accent);
-    doc.setLineWidth(1);
-
-    if (config.patientInfo.boxStyle === "rounded") {
-      doc.roundedRect(
-        config.page.margins.left,
-        y - 10,
-        patientBoxWidth,
-        patientBoxHeight,
-        config.patientInfo.borderRadius,
-        config.patientInfo.borderRadius,
-        "FD"
-      );
-    } else {
-      doc.rect(
-        config.page.margins.left,
-        y - 10,
-        patientBoxWidth,
-        patientBoxHeight,
-        config.patientInfo.boxStyle === "shadow" ? "S" : "FD"
-      );
-    }
+    // Patient Info - No border, just content area
 
     // Section Title
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.heading);
     doc.setTextColor(...config.colors.primary);
-    doc.text("Patient Information", config.page.margins.left + 20, y + 5);
 
     // Patient Info Grid
     const patientInfoRows = createPatientInfoRows(prescription, config);
@@ -633,6 +647,16 @@ export async function generatePrescriptionPDF(
     });
 
     y += patientBoxHeight + config.layout.blockSpacing;
+
+    // Line at bottom of patient information
+    doc.setDrawColor(...config.colors.accent);
+    doc.setLineWidth(1.5);
+    doc.line(
+      config.page.margins.left,
+      y - 5,
+      config.page.margins.left + patientBoxWidth,
+      y - 5
+    );
   }
 
   // ==================== TWO COLUMN LAYOUT ====================
@@ -801,6 +825,8 @@ export async function generatePrescriptionPDF(
   // MEDICATIONS
   if (config.medications.show) {
     yRight = checkPageBreak(doc, yRight, 100, config);
+    // Move medications section down by 10 pixels
+    yRight += 20;
     yRight = addMedicationsTable(
       doc,
       yRight,
@@ -814,6 +840,7 @@ export async function generatePrescriptionPDF(
   // ADDITIONAL INSTRUCTIONS
   if (config.instructions.show && hasAdditionalInstructions(prescription)) {
     yRight = checkPageBreak(doc, yRight, 100, config);
+    yRight += 20;
     yRight = addInstructionsSection(
       doc,
       yRight,
@@ -827,7 +854,9 @@ export async function generatePrescriptionPDF(
   // ==================== SIGNATURE ====================
 
   if (config.signature.show) {
-    const signatureY = Math.max(yLeft, yRight) + config.layout.sectionSpacing;
+    // Always position signature at the bottom, above the footer
+    const footerHeight = config.footer.show ? config.footer.height : 0;
+    const signatureY = pageHeight - footerHeight - 80; // 80px above footer
     addSignature(doc, signatureY, pageWidth, prescription, config);
   }
 
@@ -880,10 +909,6 @@ function createPatientInfoRows(
     height: {
       label: "Height",
       value: prescription.height ? `${prescription.height} cm` : "N/A",
-    },
-    bmi: {
-      label: "BMI",
-      value: prescription.bmi || "N/A",
     },
     phone: {
       label: "Phone",
@@ -1237,10 +1262,10 @@ function addMedicationsTable(
     const rowData = [
       config.medications.table.showRowNumbers ? `${index + 1}.` : "",
       med.medicine || "N/A",
-      med.dosage || "N/A",
-      med.frequency || "N/A",
-      med.duration || "N/A",
-      med.instructions || "N/A",
+      getMedicationField(med, "dosage", config),
+      getMedicationField(med, "frequency", config),
+      getMedicationField(med, "duration", config),
+      getMedicationField(med, "instructions", config),
     ];
 
     xPos = x + 10;
@@ -1261,7 +1286,8 @@ function addMedicationsTable(
     // Additional details
     if (config.medications.table.showAdditionalDetails) {
       const details = [];
-      if (med.form) details.push(`Form: ${med.form}`);
+      if (med.form)
+        details.push(`Form: ${getMedicationField(med, "form", config)}`);
       if (med.route) details.push(`Route: ${med.route}`);
       if (med.timing) details.push(`Timing: ${med.timing}`);
       if (med.notes) details.push(`Notes: ${med.notes}`);

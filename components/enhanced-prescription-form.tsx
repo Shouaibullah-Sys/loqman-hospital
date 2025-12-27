@@ -61,6 +61,7 @@ import {
 import { SmartMedicationSearch } from "@/components/SmartMedicationSearch";
 import { TestSearchForm } from "@/components/TestSearchForm";
 import { MultiTextInput } from "@/components/MultiTextInput";
+import { BilingualInput } from "@/components/BilingualInput";
 import {
   getFrequencyOptions,
   getDurationOptions,
@@ -133,13 +134,18 @@ export function EnhancedPrescriptionForm({
           ...med,
           id: med.id || Math.random().toString(36).substr(2, 9),
           dosage: med.dosage || "",
+          dosagePersian: med.dosagePersian || "",
           form: med.form || "tablet",
+          formPersian: med.formPersian || "",
           route: med.route || "oral",
           timing: med.timing || "after_meal",
           withFood: med.withFood || false,
           frequency: med.frequency || "",
+          frequencyPersian: med.frequencyPersian || "",
           duration: med.duration || "",
+          durationPersian: med.durationPersian || "",
           instructions: med.instructions || "",
+          instructionsPersian: med.instructionsPersian || "",
           notes: med.notes || "",
         }))
       : [];
@@ -198,13 +204,18 @@ export function EnhancedPrescriptionForm({
       id: Math.random().toString(36).substr(2, 9),
       medicine: "",
       dosage: "",
+      dosagePersian: "",
       form: "tablet",
+      formPersian: "",
       frequency: "",
+      frequencyPersian: "",
       duration: "",
+      durationPersian: "",
       route: "oral",
       timing: "after_meal",
       withFood: false,
       instructions: "",
+      instructionsPersian: "",
       notes: "",
       prescriptionId: "",
     };
@@ -1153,154 +1164,160 @@ export function EnhancedPrescriptionForm({
                                         />
                                       </td>
                                       <td className="p-3">
-                                        {medicine.dosage === "custom" ||
-                                        !DOSAGE_OPTIONS.find(
-                                          (opt) =>
-                                            opt.label === medicine.dosage &&
-                                            opt.value !== "custom"
-                                        ) ? (
-                                          <Input
-                                            value={
-                                              medicine.dosage === "custom"
+                                        <BilingualInput
+                                          label=""
+                                          englishValue={
+                                            medicine.dosage === "custom"
+                                              ? medicine.dosage === "custom"
                                                 ? ""
                                                 : medicine.dosage
-                                            }
-                                            onChange={(e) =>
+                                              : medicine.dosage
+                                          }
+                                          persianValue={
+                                            medicine.dosagePersian || ""
+                                          }
+                                          onEnglishChange={(value) => {
+                                            if (
+                                              medicine.dosage === "custom" ||
+                                              !DOSAGE_OPTIONS.find(
+                                                (opt) =>
+                                                  opt.label === value &&
+                                                  opt.value !== "custom"
+                                              )
+                                            ) {
                                               updateMedicine(
                                                 index,
                                                 "dosage",
-                                                e.target.value
-                                              )
-                                            }
-                                            placeholder="Enter dosage (e.g., 300mg)"
-                                            className="w-full text-sm h-9"
-                                          />
-                                        ) : (
-                                          <Select
-                                            value={medicine.dosage || ""}
-                                            onValueChange={(value) =>
+                                                value === "custom" ? "" : value
+                                              );
+                                            } else {
                                               updateMedicine(
                                                 index,
                                                 "dosage",
                                                 value
-                                              )
+                                              );
                                             }
-                                          >
-                                            <SelectTrigger className="w-full text-sm h-9">
-                                              <SelectValue placeholder="Select dosage" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
-                                              {DOSAGE_OPTIONS.map((option) => (
-                                                <SelectItem
-                                                  key={option.value}
-                                                  value={option.label}
-                                                >
-                                                  {option.label}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        )}
+                                          }}
+                                          onPersianChange={(value) =>
+                                            updateMedicine(
+                                              index,
+                                              "dosagePersian",
+                                              value
+                                            )
+                                          }
+                                          placeholder="Enter dosage (e.g., 300mg)"
+                                          showAutoTranslate={false}
+                                          className="text-sm"
+                                        />
                                       </td>
                                       <td className="p-3">
-                                        <Select
-                                          value={medicine.frequency || ""}
-                                          onValueChange={(value) =>
+                                        <BilingualInput
+                                          label=""
+                                          englishValue={
+                                            medicine.frequency || ""
+                                          }
+                                          persianValue={
+                                            medicine.frequencyPersian || ""
+                                          }
+                                          onEnglishChange={(value) =>
                                             updateMedicine(
                                               index,
                                               "frequency",
                                               value
                                             )
                                           }
-                                        >
-                                          <SelectTrigger className="w-full text-sm h-9">
-                                            <SelectValue placeholder="Select frequency" />
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
-                                            {FREQUENCY_OPTIONS.map((option) => (
-                                              <SelectItem
-                                                key={option.value}
-                                                value={option.label}
-                                              >
-                                                {option.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                          onPersianChange={(value) =>
+                                            updateMedicine(
+                                              index,
+                                              "frequencyPersian",
+                                              value
+                                            )
+                                          }
+                                          placeholder="Select frequency"
+                                          showAutoTranslate={true}
+                                          translationKey={medicine.frequency}
+                                          className="text-sm"
+                                        />
                                       </td>
                                       <td className="p-3">
-                                        <Select
-                                          value={medicine.duration || ""}
-                                          onValueChange={(value) =>
+                                        <BilingualInput
+                                          label=""
+                                          englishValue={medicine.duration || ""}
+                                          persianValue={
+                                            medicine.durationPersian || ""
+                                          }
+                                          onEnglishChange={(value) =>
                                             updateMedicine(
                                               index,
                                               "duration",
                                               value
                                             )
                                           }
-                                        >
-                                          <SelectTrigger className="w-full text-sm h-9">
-                                            <SelectValue placeholder="Select duration" />
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
-                                            {DURATION_OPTIONS.map((option) => (
-                                              <SelectItem
-                                                key={option.value}
-                                                value={option.label}
-                                              >
-                                                {option.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                          onPersianChange={(value) =>
+                                            updateMedicine(
+                                              index,
+                                              "durationPersian",
+                                              value
+                                            )
+                                          }
+                                          placeholder="Select duration"
+                                          showAutoTranslate={true}
+                                          translationKey={medicine.duration}
+                                          className="text-sm"
+                                        />
                                       </td>
                                       <td className="p-3">
-                                        <Select
-                                          value={medicine.form || "tablet"}
-                                          onValueChange={(value) =>
+                                        <BilingualInput
+                                          label=""
+                                          englishValue={
+                                            medicine.form || "tablet"
+                                          }
+                                          persianValue={
+                                            medicine.formPersian || ""
+                                          }
+                                          onEnglishChange={(value) =>
                                             updateMedicine(index, "form", value)
                                           }
-                                        >
-                                          <SelectTrigger className="w-full text-sm h-9">
-                                            <SelectValue placeholder="Form" />
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-popover dark:bg-gray-900 text-popover-foreground dark:text-white border dark:border-gray-700">
-                                            <SelectItem value="tablet">
-                                              Tablet
-                                            </SelectItem>
-                                            <SelectItem value="capsule">
-                                              Capsule
-                                            </SelectItem>
-                                            <SelectItem value="syrup">
-                                              Syrup
-                                            </SelectItem>
-                                            <SelectItem value="injection">
-                                              Injection
-                                            </SelectItem>
-                                            <SelectItem value="drop">
-                                              Drop
-                                            </SelectItem>
-                                            <SelectItem value="cream">
-                                              Cream
-                                            </SelectItem>
-                                            <SelectItem value="ointment">
-                                              Ointment
-                                            </SelectItem>
-                                          </SelectContent>
-                                        </Select>
+                                          onPersianChange={(value) =>
+                                            updateMedicine(
+                                              index,
+                                              "formPersian",
+                                              value
+                                            )
+                                          }
+                                          placeholder="Form"
+                                          showAutoTranslate={true}
+                                          translationKey={medicine.form}
+                                          className="text-sm"
+                                        />
                                       </td>
                                       <td className="p-3">
-                                        <Input
-                                          value={medicine.instructions || ""}
-                                          onChange={(e) =>
+                                        <BilingualInput
+                                          label=""
+                                          englishValue={
+                                            medicine.instructions || ""
+                                          }
+                                          persianValue={
+                                            medicine.instructionsPersian || ""
+                                          }
+                                          onEnglishChange={(value) =>
                                             updateMedicine(
                                               index,
                                               "instructions",
-                                              e.target.value
+                                              value
+                                            )
+                                          }
+                                          onPersianChange={(value) =>
+                                            updateMedicine(
+                                              index,
+                                              "instructionsPersian",
+                                              value
                                             )
                                           }
                                           placeholder="Enter instructions"
-                                          className="w-full text-sm h-9"
+                                          showAutoTranslate={true}
+                                          translationKey={medicine.instructions}
+                                          className="text-sm"
                                         />
                                       </td>
                                       <td className="p-3">
