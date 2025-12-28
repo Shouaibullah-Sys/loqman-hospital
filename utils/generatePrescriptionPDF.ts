@@ -321,7 +321,7 @@ export const defaultPDFConfig: PDFConfig = {
       socialHistory: true,
     },
     boxStyle: "rounded",
-    boxHeight: 40,
+    boxHeight: 80, // Increased from 40 to 60 to give more space for Lab Exams
   },
 
   vitalSigns: {
@@ -802,7 +802,9 @@ export async function generatePrescriptionPDF(
     }
 
     for (const section of sections) {
-      yLeft = checkPageBreak(doc, yLeft, 100, config);
+      // For Lab Exams, ensure we have enough space and check for page breaks more aggressively
+      const requiredSpace = section.title === "Lab Exams" ? 120 : 100;
+      yLeft = checkPageBreak(doc, yLeft, requiredSpace, config);
       yLeft = addLeftColumnSection(
         doc,
         section,
@@ -994,13 +996,19 @@ function addLeftColumnSection(
 
   // Content box
   const isLabExams = section.title === "Lab Exams";
-  const boxHeight =
+  const baseBoxHeight = config.clinicalHistory.boxHeight;
+  const calculatedHeight =
     section.type === "list"
       ? Math.max(
-          config.clinicalHistory.boxHeight,
-          section.items.length * (isLabExams ? 12 : 15) + 20
+          baseBoxHeight,
+          section.items.length * (isLabExams ? 16 : 15) + 30 // Increased spacing and padding for Lab Exams
         )
-      : config.clinicalHistory.boxHeight;
+      : baseBoxHeight;
+
+  // For Lab Exams, ensure minimum height of 80px and add extra padding
+  const boxHeight = isLabExams
+    ? Math.max(calculatedHeight, 80) // Minimum height for Lab Exams
+    : calculatedHeight;
 
   doc.setFillColor(...config.colors.bgLight);
   doc.setDrawColor(...config.colors.border);
@@ -1018,23 +1026,32 @@ function addLeftColumnSection(
     // Use smaller font size for Lab Exams to prevent overflow
     const isLabExams = section.title === "Lab Exams";
     const fontSize = isLabExams
-      ? config.typography.fontSizes.tiny
+      ? config.typography.fontSizes.small // Increased from tiny to small for better readability
       : config.typography.fontSizes.small;
     doc.setFontSize(fontSize);
     doc.setTextColor(...config.colors.textDark);
 
-    // Use smaller line spacing for Lab Exams
-    const lineSpacing = isLabExams ? 12 : 15;
+    // Use increased line spacing for Lab Exams to prevent text overlap
+    const lineSpacing = isLabExams ? 16 : 15; // Increased from 12 to 16
     section.items.forEach((item: string, index: number) => {
       const itemText = `${index + 1}. ${item}`;
 
       if (isLabExams) {
-        // For Lab Exams, use text wrapping to prevent overflow
+        // For Lab Exams, use text wrapping to prevent overflow with better spacing
         const maxWidth = width - 20; // Leave padding on both sides
         const lines = doc.splitTextToSize(itemText, maxWidth);
         lines.forEach((line: string, lineIndex: number) => {
-          doc.text(line, x + 10, y + 8 + index * lineSpacing + lineIndex * 10);
+          const lineY = y + 8 + index * lineSpacing + lineIndex * 12; // Increased line height for wrapped text
+          doc.text(line, x + 10, lineY);
         });
+
+        // Check if we need to add extra spacing after this item due to wrapping
+        const extraLines = Math.max(0, lines.length - 1);
+        if (extraLines > 0) {
+          // Add extra space for wrapped lines
+          section.items._extraSpacing =
+            (section.items._extraSpacing || 0) + extraLines * 4;
+        }
       } else {
         doc.text(itemText, x + 10, y + 8 + index * lineSpacing);
       }
@@ -1048,6 +1065,12 @@ function addLeftColumnSection(
   }
 
   y += boxHeight + config.layout.blockSpacing;
+
+  // Add extra spacing for wrapped Lab Exams text if needed
+  if (isLabExams && section.items._extraSpacing) {
+    y += section.items._extraSpacing;
+  }
+
   return y;
 }
 
