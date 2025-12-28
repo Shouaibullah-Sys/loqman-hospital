@@ -132,7 +132,7 @@ export const tests = pgTable("tests", {
 export const prescriptionTests = pgTable("prescription_tests", {
   id: text("id").primaryKey(),
   prescriptionId: text("prescription_id").notNull(),
-  testId: text("test_id").notNull(),
+  testId: text("test_id"), // Optional - for when linking to actual test records
   testName: text("test_name").notNull(), // Denormalized for performance
   notes: text("notes"),
   priority: text("priority").default("routine"), // "routine" | "urgent" | "stat"

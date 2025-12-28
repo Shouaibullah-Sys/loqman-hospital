@@ -1,14 +1,13 @@
 // components/SmartMdedicatinSearch.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
@@ -26,14 +25,14 @@ import { medicationDB } from "@/services/medicationDatabaseService";
 // Type definitions for better type safety
 interface Medication {
   id?: string | number;
-  name?: string; // Alternative property for local database
-  generic_name?: string; // Alternative property for local database
+  name?: string;
+  generic_name?: string;
   category: string[] | string;
   dosage_forms?: string[];
   strengths?: string[];
   popular_score?: number;
-  dosage_form?: string; // Alternative property for local database
-  strength?: string; // Alternative property for local database
+  dosage_form?: string;
+  strength?: string;
 }
 
 interface AISuggestion {
@@ -52,6 +51,7 @@ interface SearchSuggestion {
   description: string;
   confidence: number;
   category: string;
+  value: string; // Add this for CommandItem value
 }
 
 interface SmartMedicationSearchProps {
@@ -80,24 +80,14 @@ export function SmartMedicationSearch({
   className,
 }: SmartMedicationSearchProps) {
   const [open, setOpen] = useState(false);
-  // Use controlled state that only updates when external value changes
   const [searchTerm, setSearchTerm] = useState(value || "");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [isSelecting, setIsSelecting] = useState(false); // New state to track selection
+  const [selectedSuggestion, setSelectedSuggestion] =
+    useState<SearchSuggestion | null>(null);
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined);
-  const isControlled = value !== undefined;
-
-  // Test database on mount
-  useEffect(() => {
-    console.log("Testing medication database...");
-    console.log("Total medications:", medicationDB.getAll().length);
-    console.log(
-      "Search test 'acetaminophen':",
-      medicationDB.search("acetaminophen")
-    );
-  }, []);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Load search history from localStorage
   useEffect(() => {
@@ -115,231 +105,290 @@ export function SmartMedicationSearch({
     }
   }, []);
 
-  // Sync searchTerm with external value only when it actually changes
+  // Sync searchTerm with external value
   useEffect(() => {
-    if (isControlled && value !== searchTerm) {
-      setSearchTerm(value || "");
+    if (value !== undefined && value !== searchTerm) {
+      setSearchTerm(value);
     }
-  }, [value, searchTerm, isControlled]);
+  }, [value]);
 
-  const saveToHistory = (term: string) => {
-    if (!term.trim()) return;
+  const saveToHistory = useCallback(
+    (term: string) => {
+      if (!term.trim()) return;
 
-    const updated = [term, ...searchHistory.filter((h) => h !== term)].slice(
-      0,
-      5
-    );
-    setSearchHistory(updated);
-
-    try {
-      localStorage.setItem(
-        "medication_search_history",
-        JSON.stringify(updated)
+      const updated = [term, ...searchHistory.filter((h) => h !== term)].slice(
+        0,
+        5
       );
-    } catch (error) {
-      console.warn("Failed to save search history:", error);
-    }
-  };
-
-  const searchMedications = async (term: string): Promise<void> => {
-    console.log("Searching medications for:", term);
-
-    if (!term.trim()) {
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Try AI service first
-      let smartSuggestions: AISuggestion[] = [];
+      setSearchHistory(updated);
 
       try {
-        smartSuggestions = await aiMedicationService.smartAutocomplete(
-          term,
-          context
+        localStorage.setItem(
+          "medication_search_history",
+          JSON.stringify(updated)
         );
-        console.log("AI suggestions:", smartSuggestions.length);
-      } catch (aiError) {
-        console.error("AI service failed, using local database:", aiError);
+      } catch (error) {
+        console.warn("Failed to save search history:", error);
+      }
+    },
+    [searchHistory]
+  );
+
+  const searchMedications = useCallback(
+    async (term: string): Promise<void> => {
+      if (!term.trim()) {
+        setSuggestions([]);
+        setOpen(false);
+        return;
       }
 
-      // Always fall back to local database
-      const localSuggestions = medicationDB.getSuggestions(term);
-      console.log("Local suggestions:", localSuggestions.length);
+      setIsLoading(true);
 
-      // Combine results - prefer AI if available
-      let combined = [];
+      try {
+        let smartSuggestions: AISuggestion[] = [];
 
-      if (smartSuggestions.length > 0) {
-        // Format AI suggestions
-        combined = smartSuggestions.map(
-          (s): SearchSuggestion => ({
-            type: "ai_suggestion" as const,
-            data: s,
-            label: s.medication.name || "Unknown medication",
-            description:
-              s.medication.generic_name || s.reasoning || "Medication",
-            confidence: s.confidence,
-            category: s.medication.category?.[0] || "General",
-          })
-        );
-      } else {
-        // Use local suggestions
-        combined = localSuggestions.map(
-          (f): SearchSuggestion => ({
-            type: "fallback" as const,
-            data: f,
-            label: f.name,
-            description: f.generic_name || "Medication",
-            confidence: 0.6,
-            category: f.category,
-          })
-        );
+        // Try AI service first
+        try {
+          smartSuggestions = await aiMedicationService.smartAutocomplete(
+            term,
+            context
+          );
+          console.log("AI suggestions:", smartSuggestions.length);
+        } catch (aiError) {
+          console.error("AI service failed, using local database:", aiError);
+        }
+
+        // Always fall back to local database
+        const localSuggestions = medicationDB.getSuggestions(term);
+        console.log("Local suggestions:", localSuggestions.length);
+
+        let combined: SearchSuggestion[] = [];
+
+        if (smartSuggestions.length > 0) {
+          combined = smartSuggestions.map(
+            (s): SearchSuggestion => ({
+              type: "ai_suggestion" as const,
+              data: s,
+              label: s.medication.name || "Unknown medication",
+              description:
+                s.medication.generic_name || s.reasoning || "Medication",
+              confidence: s.confidence,
+              category: Array.isArray(s.medication.category)
+                ? s.medication.category[0] || "General"
+                : s.medication.category || "General",
+              value: s.medication.name || "Unknown medication", // Add value property
+            })
+          );
+        } else if (localSuggestions.length > 0) {
+          combined = localSuggestions.map(
+            (f): SearchSuggestion => ({
+              type: "fallback" as const,
+              data: f,
+              label: f.name || "Unknown",
+              description: f.generic_name || "Medication",
+              confidence: 0.6,
+              category:
+                typeof f.category === "string"
+                  ? f.category
+                  : Array.isArray(f.category)
+                  ? f.category[0] || "General"
+                  : "General",
+              value: f.name || "Unknown", // Add value property
+            })
+          );
+        }
+
+        // Get completions if no suggestions found
+        if (combined.length === 0) {
+          try {
+            const completions = await aiMedicationService.suggestCompletions(
+              term
+            );
+            if (completions.length > 0) {
+              combined = completions.map(
+                (c): SearchSuggestion => ({
+                  type: "completion" as const,
+                  data: c,
+                  label: c,
+                  description: "Auto-complete",
+                  confidence: 0.5,
+                  category: "General",
+                  value: c, // Add value property
+                })
+              );
+            }
+          } catch (completionError) {
+            console.error("Completion service failed:", completionError);
+          }
+        }
+
+        console.log("Final combined suggestions:", combined.length);
+        setSuggestions(combined.slice(0, 15));
+
+        // Auto-open popover if we have suggestions
+        if (combined.length > 0 && !open) {
+          setOpen(true);
+        } else if (combined.length === 0) {
+          setOpen(false);
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+        setSuggestions([]);
+        setOpen(false);
+      } finally {
+        setIsLoading(false);
       }
+    },
+    [context, open]
+  );
 
-      // Also get completions for display
-      const completions = await aiMedicationService.suggestCompletions(term);
-      if (completions.length > 0 && combined.length === 0) {
-        combined = completions.map(
-          (c): SearchSuggestion => ({
-            type: "completion" as const,
-            data: c,
-            label: c,
-            description: "Auto-complete",
-            confidence: 0.5,
-            category: "General",
-          })
-        );
-      }
-
-      console.log("Final combined suggestions:", combined.length);
-      setSuggestions(combined.slice(0, 15));
-
-      // Auto-open popover if we have suggestions and we're not already open
-      if (combined.length > 0 && !open) {
-        setOpen(true);
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-      setSuggestions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Debounced search - only search when term actually changes
+  // Debounced search
   useEffect(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
-    debounceTimer.current = setTimeout(() => {
-      searchMedications(searchTerm);
-    }, 300);
+    // Only search if term has actually changed and not empty
+    if (searchTerm.trim()) {
+      debounceTimer.current = setTimeout(() => {
+        searchMedications(searchTerm);
+      }, 300);
+    } else {
+      setSuggestions([]);
+      setOpen(false);
+    }
 
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [searchTerm]);
+  }, [searchTerm, searchMedications]);
 
-  const handleSelect = (suggestion: any) => {
-    console.log("Selected suggestion:", suggestion);
-    const selectedValue = suggestion.label;
+  const handleSelect = useCallback(
+    (suggestion: SearchSuggestion) => {
+      console.log("Selected suggestion:", suggestion);
 
-    // Update search term immediately
-    setSearchTerm(selectedValue);
-    setOpen(false); // Ensure popover closes
-    setSuggestions([]); // Clear suggestions
-    saveToHistory(selectedValue);
+      const selectedValue = suggestion.label;
 
-    // Call onChange with the selected value
-    if (onChange) {
-      onChange(selectedValue, suggestion.data);
-    }
+      // Set the selected suggestion
+      setSelectedSuggestion(suggestion);
 
-    if (onSuggestionSelect && suggestion.type === "ai_suggestion") {
-      onSuggestionSelect(suggestion.data);
-    }
-  };
+      // Update search term
+      setSearchTerm(selectedValue);
 
-  const clearSearch = () => {
-    setIsSelecting(true);
+      // Close popover
+      setOpen(false);
 
-    // Clear internal state
-    if (!isControlled) {
-      setSearchTerm("");
-    }
+      // Clear suggestions
+      setSuggestions([]);
 
+      // Save to history
+      saveToHistory(selectedValue);
+
+      // Call onChange with the selected value
+      if (onChange) {
+        onChange(selectedValue, suggestion.data);
+      }
+
+      // Call onSuggestionSelect if provided and it's an AI suggestion
+      if (onSuggestionSelect && suggestion.type === "ai_suggestion") {
+        onSuggestionSelect(suggestion.data);
+      }
+
+      // Focus back on input
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 10);
+    },
+    [onChange, onSuggestionSelect, saveToHistory]
+  );
+
+  const clearSearch = useCallback(() => {
+    setSearchTerm("");
     setSuggestions([]);
+    setSelectedSuggestion(null);
     setOpen(false);
 
-    // Always call onChange to clear parent state
     if (onChange) {
       onChange("", undefined);
     }
 
+    // Focus back on input
     setTimeout(() => {
-      setIsSelecting(false);
-    }, 100);
-  };
+      inputRef.current?.focus();
+    }, 10);
+  }, [onChange]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    setIsSelecting(false); // User is typing, not selecting
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value;
 
-    // Only update internal state if not controlled, or if controlled but we're the ones updating it
-    if (!isControlled) {
+      // Always update internal state
       setSearchTerm(inputValue);
-    }
 
-    // Always call onChange for parent to handle
-    if (onChange) {
-      onChange(inputValue);
-    }
+      // Clear selected suggestion when user starts typing
+      if (inputValue !== selectedSuggestion?.label) {
+        setSelectedSuggestion(null);
+      }
 
-    // Open popover when user starts typing
-    if (inputValue.trim() && !open) {
+      // Call parent onChange with just the value
+      if (onChange) {
+        onChange(inputValue);
+      }
+
+      // Open popover if there's text
+      if (inputValue.trim()) {
+        setOpen(true);
+      } else {
+        setOpen(false);
+      }
+    },
+    [onChange, selectedSuggestion]
+  );
+
+  const handleInputFocus = useCallback(() => {
+    if (searchTerm.trim() && suggestions.length > 0) {
       setOpen(true);
-    } else if (!inputValue.trim()) {
-      setOpen(false);
+    } else if (searchTerm.trim()) {
+      // If we have text but no suggestions, trigger search
+      searchMedications(searchTerm);
     }
-  };
+  }, [searchTerm, suggestions.length, searchMedications]);
 
-  const handleFocus = () => {
-    if (searchTerm.trim()) {
-      setOpen(true);
-    }
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    // Don't open if we just selected something
-    if (!isSelecting) {
-      setOpen(newOpen);
-    }
-  };
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      // Don't open if we have no search term and no suggestions
+      if (
+        !newOpen ||
+        (searchTerm.trim() && suggestions.length > 0) ||
+        searchHistory.length > 0
+      ) {
+        setOpen(newOpen);
+      }
+    },
+    [searchTerm, suggestions.length, searchHistory.length]
+  );
 
   // Helper functions for type-safe data access
-  const getMedicationFromData = (
-    data: AISuggestion | Medication | string
-  ): Medication | null => {
-    if (typeof data === "string") return null;
-    if ("medication" in data) return data.medication;
-    return data;
-  };
+  const getMedicationFromData = useCallback(
+    (data: AISuggestion | Medication | string): Medication | null => {
+      if (typeof data === "string") return null;
+      if ("medication" in data) return data.medication;
+      return data as Medication;
+    },
+    []
+  );
 
-  const getAISuggestionFromData = (
-    data: AISuggestion | Medication | string
-  ): AISuggestion | null => {
-    if (typeof data === "string") return null;
-    if ("medication" in data && "reasoning" in data)
-      return data as AISuggestion;
-    return null;
-  };
+  const getAISuggestionFromData = useCallback(
+    (data: AISuggestion | Medication | string): AISuggestion | null => {
+      if (typeof data === "string") return null;
+      if ("medication" in data && "reasoning" in data)
+        return data as AISuggestion;
+      return null;
+    },
+    []
+  );
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -347,28 +396,31 @@ export function SmartMedicationSearch({
         <PopoverTrigger asChild>
           <div className="relative">
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                value={isControlled ? value || "" : searchTerm}
+                ref={inputRef}
+                value={searchTerm}
                 onChange={handleInputChange}
-                onFocus={handleFocus}
+                onFocus={handleInputFocus}
                 placeholder={placeholder}
                 disabled={disabled}
-                className="w-full pl-10 pr-10 text-right"
+                className="w-full pl-10 pr-10"
+                aria-label="Medication search"
               />
               {searchTerm && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0 hover:bg-transparent"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-transparent"
                   onClick={clearSearch}
+                  type="button"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
             {isLoading && (
-              <div className="absolute left-12 top-1/2 transform -translate-y-1/2">
+              <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
                   Searching...
@@ -377,14 +429,14 @@ export function SmartMedicationSearch({
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start" side="bottom">
-          <Command className="rounded-lg border shadow-md">
-            <CommandInput
-              placeholder="Type medication name..."
-              value={searchTerm}
-              onValueChange={setSearchTerm}
-              className="border-none"
-            />
+        <PopoverContent
+          className="w-[400px] p-0"
+          align="start"
+          side="bottom"
+          avoidCollisions={true}
+          sideOffset={5}
+        >
+          <Command className="rounded-lg border shadow-md" shouldFilter={false}>
             <CommandList>
               {isLoading ? (
                 <div className="py-6 text-center text-sm text-muted-foreground">
@@ -396,7 +448,7 @@ export function SmartMedicationSearch({
                   <div className="flex flex-col items-center py-6 text-center">
                     <Search className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      No medication found
+                      No medication found for "{searchTerm}"
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Try entering the English or generic name
@@ -408,15 +460,15 @@ export function SmartMedicationSearch({
                   {/* Search History */}
                   {searchHistory.length > 0 && searchTerm === "" && (
                     <CommandGroup heading="Recent searches">
-                      {searchHistory.map((term) => (
+                      {searchHistory.map((term, index) => (
                         <CommandItem
-                          key={`history-${term}`}
+                          key={`history-${index}-${term}`}
                           value={term}
                           onSelect={() => {
                             setSearchTerm(term);
                             searchMedications(term);
                           }}
-                          className="flex items-center justify-between"
+                          className="flex items-center justify-between cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
                             <History className="h-3 w-3 text-muted-foreground" />
@@ -425,9 +477,10 @@ export function SmartMedicationSearch({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 hover:bg-transparent"
                             onClick={(e) => {
                               e.stopPropagation();
+                              e.preventDefault();
                               setSearchHistory((prev) =>
                                 prev.filter((h) => h !== term)
                               );
@@ -443,155 +496,151 @@ export function SmartMedicationSearch({
                   {/* Suggestions */}
                   {suggestions.length > 0 && (
                     <CommandGroup heading="Search results">
-                      {suggestions.map((suggestion, index) => (
-                        <CommandItem
-                          key={`${suggestion.type}-${index}`}
-                          value={suggestion.label}
-                          onSelect={() => handleSelect(suggestion)}
-                          className="flex flex-col items-start py-3 cursor-pointer hover:bg-accent"
-                        >
-                          <div className="flex items-center justify-between w-full mb-1">
-                            <div className="flex items-center gap-2">
-                              <Pill className="h-4 w-4 text-primary" />
-                              <span className="font-medium">
-                                {suggestion.label}
-                              </span>
-                              {suggestion.description &&
-                                suggestion.description !== "دارو" && (
-                                  <span className="text-xs text-muted-foreground">
-                                    ({suggestion.description})
-                                  </span>
+                      {suggestions.map((suggestion, index) => {
+                        const medication = getMedicationFromData(
+                          suggestion.data
+                        );
+                        const aiSuggestion = getAISuggestionFromData(
+                          suggestion.data
+                        );
+
+                        return (
+                          <CommandItem
+                            key={`${suggestion.type}-${index}-${suggestion.label}`}
+                            value={suggestion.value}
+                            onSelect={() => handleSelect(suggestion)}
+                            className="flex flex-col items-start py-3 cursor-pointer hover:bg-accent"
+                          >
+                            <div className="flex items-center justify-between w-full mb-1">
+                              <div className="flex items-center gap-2">
+                                <Pill className="h-4 w-4 text-primary" />
+                                <span className="font-medium">
+                                  {suggestion.label}
+                                </span>
+                                {suggestion.description &&
+                                  suggestion.description !== "دارو" &&
+                                  suggestion.description !== "Medication" && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({suggestion.description})
+                                    </span>
+                                  )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {suggestion.type === "ai_suggestion" && (
+                                  <>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs",
+                                        suggestion.confidence > 0.8
+                                          ? "bg-green-50 text-green-700 border-green-200"
+                                          : suggestion.confidence > 0.6
+                                          ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                          : "bg-red-50 text-red-700 border-red-200"
+                                      )}
+                                    >
+                                      {Math.round(suggestion.confidence * 100)}%
+                                    </Badge>
+                                    <Sparkles className="h-3 w-3 text-amber-500" />
+                                  </>
                                 )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {suggestion.type === "ai_suggestion" && (
-                                <>
+                                {suggestion.type === "fallback" && (
                                   <Badge
                                     variant="outline"
-                                    className={cn(
-                                      "text-xs",
-                                      suggestion.confidence > 0.8
-                                        ? "bg-green-50 text-green-700 border-green-200"
-                                        : suggestion.confidence > 0.6
-                                        ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                        : "bg-red-50 text-red-700 border-red-200"
-                                    )}
+                                    className="text-xs bg-blue-50 text-blue-700 border-blue-200"
                                   >
-                                    {Math.round(suggestion.confidence * 100)}%
+                                    Local
                                   </Badge>
-                                  <Sparkles className="h-3 w-3 text-amber-500" />
-                                </>
-                              )}
-                              {suggestion.type === "fallback" && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-blue-50"
-                                >
-                                  Local
-                                </Badge>
-                              )}
+                                )}
+                                {suggestion.type === "completion" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-purple-50 text-purple-700 border-purple-200"
+                                  >
+                                    Suggestion
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="secondary" className="text-xs">
-                              {suggestion.category}
-                            </Badge>
-                            {(() => {
-                              const medication = getMedicationFromData(
-                                suggestion.data
-                              );
-                              return (
-                                <>
-                                  {medication?.dosage_forms?.[0] && (
-                                    <span>{medication.dosage_forms[0]}</span>
-                                  )}
-                                  {medication?.strengths?.[0] && (
-                                    <span>• {medication.strengths[0]}</span>
-                                  )}
-                                  {medication &&
-                                    "strength" in medication &&
-                                    medication.strength && (
-                                      <span>• {medication.strength}</span>
-                                    )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                          {(() => {
-                            const aiSuggestion = getAISuggestionFromData(
-                              suggestion.data
-                            );
-                            return (
-                              aiSuggestion?.reasoning && (
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  {aiSuggestion.reasoning}
-                                </p>
-                              )
-                            );
-                          })()}
-                          {(() => {
-                            const aiSuggestion = getAISuggestionFromData(
-                              suggestion.data
-                            );
-                            return (
-                              aiSuggestion &&
-                              aiSuggestion.precautions &&
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Badge variant="secondary" className="text-xs">
+                                {suggestion.category}
+                              </Badge>
+                              {medication?.dosage_forms?.[0] && (
+                                <span>{medication.dosage_forms[0]}</span>
+                              )}
+                              {medication?.strengths?.[0] && (
+                                <span>• {medication.strengths[0]}</span>
+                              )}
+                              {medication &&
+                                "strength" in medication &&
+                                medication.strength && (
+                                  <span>• {medication.strength}</span>
+                                )}
+                            </div>
+                            {aiSuggestion?.reasoning && (
+                              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                                {aiSuggestion.reasoning}
+                              </p>
+                            )}
+                            {aiSuggestion?.precautions &&
                               aiSuggestion.precautions.length > 0 && (
                                 <div className="flex items-center gap-1 mt-1">
                                   <AlertCircle className="h-3 w-3 text-amber-500" />
-                                  <span className="text-xs text-amber-600">
+                                  <span className="text-xs text-amber-600 line-clamp-1">
                                     {aiSuggestion.precautions[0]}
                                   </span>
                                 </div>
-                              )
-                            );
-                          })()}
-                        </CommandItem>
-                      ))}
+                              )}
+                          </CommandItem>
+                        );
+                      })}
                     </CommandGroup>
                   )}
 
                   {/* Popular medicines when no search term */}
-                  {suggestions.length === 0 && searchTerm === "" && (
-                    <CommandGroup heading="Popular medications">
-                      {medicationDB
-                        .getAll()
-                        .sort((a, b) => b.popular_score - a.popular_score)
-                        .slice(0, 5)
-                        .map((med, index) => (
-                          <CommandItem
-                            key={`popular-${index}`}
-                            value={med.name}
-                            onSelect={() =>
-                              handleSelect({
-                                type: "fallback",
-                                data: {
-                                  id: med.id,
-                                  name: med.name,
-                                  generic_name: med.generic_name,
-                                  category: med.category[0],
-                                  dosage_form: med.dosage_forms[0],
-                                  strength: med.strengths[0],
-                                },
-                                label: med.name,
-                                description: med.generic_name || "Medication",
-                                confidence: 0.8,
-                                category: med.category[0],
-                              })
-                            }
-                            className="flex items-center gap-2 py-2 px-3"
-                          >
-                            <Pill className="h-4 w-4 text-muted-foreground" />
-                            <span>{med.name}</span>
-                            {med.generic_name && (
-                              <span className="text-xs text-muted-foreground">
-                                ({med.generic_name})
-                              </span>
-                            )}
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  )}
+                  {suggestions.length === 0 &&
+                    searchTerm === "" &&
+                    searchHistory.length === 0 && (
+                      <CommandGroup heading="Popular medications">
+                        {medicationDB
+                          .getAll()
+                          .sort(
+                            (a, b) =>
+                              (b.popular_score || 0) - (a.popular_score || 0)
+                          )
+                          .slice(0, 5)
+                          .map((med, index) => (
+                            <CommandItem
+                              key={`popular-${index}-${med.id || med.name}`}
+                              value={med.name || "Unknown"}
+                              onSelect={() => {
+                                const suggestion: SearchSuggestion = {
+                                  type: "fallback",
+                                  data: med,
+                                  label: med.name || "Unknown",
+                                  description: med.generic_name || "Medication",
+                                  confidence: 0.8,
+                                  category: Array.isArray(med.category)
+                                    ? med.category[0] || "General"
+                                    : med.category || "General",
+                                  value: med.name || "Unknown",
+                                };
+                                handleSelect(suggestion);
+                              }}
+                              className="flex items-center gap-2 py-2 px-3 cursor-pointer"
+                            >
+                              <Pill className="h-4 w-4 text-muted-foreground" />
+                              <span>{med.name}</span>
+                              {med.generic_name && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({med.generic_name})
+                                </span>
+                              )}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    )}
                 </>
               )}
             </CommandList>

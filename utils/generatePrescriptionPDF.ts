@@ -48,8 +48,11 @@ export interface VoicePrescription {
   examNotes?: string;
   medicines: Medication[];
   instructions?: string;
+  instructionsPersian?: string;
   followUp?: string;
+  followUpPersian?: string;
   restrictions?: string;
+  restrictionsPersian?: string;
   doctorName: string;
   doctorLicenseNumber?: string;
   clinicName?: string;
@@ -245,7 +248,7 @@ export const defaultPDFConfig: PDFConfig = {
   language: {
     primary: "english",
     fallback: "persian",
-    showBothLanguages: false,
+    showBothLanguages: true, // Set to true to show both languages
     autoDetect: true,
   },
 
@@ -396,25 +399,25 @@ export const defaultPDFConfig: PDFConfig = {
 // ==================== HELPER FUNCTIONS ====================
 
 /**
- * Get the appropriate language value from a bilingual medication field
+ * Get the appropriate language value from a bilingual field
  */
 function getBilingualValue(
   englishValue: string | undefined,
   persianValue: string | undefined,
   config: PDFConfig
 ): string {
-  // If showBothLanguages is true, show both
+  // If showBothLanguages is true and both values exist, show both
   if (config.language.showBothLanguages && englishValue && persianValue) {
-    return `${englishValue} / ${persianValue}`;
+    return `${englishValue}\n${persianValue}`;
   }
 
   // If primary language is English
   if (config.language.primary === "english") {
-    return englishValue || persianValue || "N/A";
+    return englishValue || persianValue || "";
   }
 
   // If primary language is Persian
-  return persianValue || englishValue || "N/A";
+  return persianValue || englishValue || "";
 }
 
 /**
@@ -427,6 +430,23 @@ function getMedicationField(
 ): string {
   const englishValue = medication[fieldName];
   const persianValue = medication[`${fieldName}Persian`];
+  return getBilingualValue(englishValue, persianValue, config);
+}
+
+/**
+ * Get instruction field with bilingual support (for restrictions, followUp, general instructions)
+ */
+function getInstructionField(
+  prescription: VoicePrescription,
+  fieldName: string,
+  config: PDFConfig
+): string {
+  const englishValue = prescription[
+    fieldName as keyof VoicePrescription
+  ] as string;
+  const persianValue = prescription[
+    `${fieldName}Persian` as keyof VoicePrescription
+  ] as string;
   return getBilingualValue(englishValue, persianValue, config);
 }
 
@@ -503,8 +523,6 @@ export async function generatePrescriptionPDF(
   } else {
     console.log("No medical exams data or empty array");
   }
-
-  // Rest of the existing code...
 
   // Merge user config with default config
   const config: PDFConfig = {
@@ -841,7 +859,7 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // MEDICATIONS
+  // MEDICATIONS - Updated to support bilingual Frequency, Duration, Instructions
   if (config.medications.show) {
     yRight = checkPageBreak(doc, yRight, 100, config);
     // Move medications section down by 10 pixels
@@ -856,7 +874,7 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // ADDITIONAL INSTRUCTIONS (Follow-up and Restrictions only)
+  // ADDITIONAL INSTRUCTIONS (Follow-up and Restrictions only) - Updated to support bilingual Restrictions
   if (config.instructions.show && hasAdditionalInstructions(prescription)) {
     yRight = checkPageBreak(doc, yRight, 100, config);
     yRight += 20;
@@ -1290,14 +1308,14 @@ function addMedicationsTable(
       );
     }
 
-    // Row data
+    // Row data - Using bilingual fields for Frequency, Duration, Instructions
     const rowData = [
       config.medications.table.showRowNumbers ? `${index + 1}.` : "",
       med.medicine || "N/A",
       getMedicationField(med, "dosage", config),
-      getMedicationField(med, "frequency", config),
-      getMedicationField(med, "duration", config),
-      getMedicationField(med, "instructions", config),
+      getMedicationField(med, "frequency", config), // Bilingual support
+      getMedicationField(med, "duration", config), // Bilingual support
+      getMedicationField(med, "instructions", config), // Bilingual support
     ];
 
     xPos = x + 10;
@@ -1307,13 +1325,38 @@ function addMedicationsTable(
 
     rowData.forEach((data, colIndex) => {
       const padding = colIndex === 0 ? 2 : 8;
-      doc.text(data, xPos + padding, y, {
-        maxWidth: columnWidths[colIndex] - padding * 2,
-      });
+      // For bilingual text, we need to handle multiline
+      const lines = doc.splitTextToSize(
+        data,
+        columnWidths[colIndex] - padding * 2
+      );
+
+      if (lines.length > 1) {
+        // If multiline, adjust positioning
+        lines.forEach((line: string, lineIndex: number) => {
+          doc.text(line, xPos + padding, y + lineIndex * 10);
+        });
+      } else {
+        doc.text(data, xPos + padding, y, {
+          maxWidth: columnWidths[colIndex] - padding * 2,
+        });
+      }
       xPos += columnWidths[colIndex];
     });
 
-    y += config.medications.table.rowHeight;
+    // Adjust y position for multiline content
+    const maxLines = Math.max(
+      ...rowData.map((data, colIndex) => {
+        const padding = colIndex === 0 ? 2 : 8;
+        const lines = doc.splitTextToSize(
+          data,
+          columnWidths[colIndex] - padding * 2
+        );
+        return lines.length;
+      })
+    );
+
+    y += Math.max(config.medications.table.rowHeight, maxLines * 10);
 
     // Additional details
     if (config.medications.table.showAdditionalDetails) {
@@ -1361,9 +1404,6 @@ function addInstructionsSection(
 
   y += 25;
 
-  // General Instructions - MOVED TO BOTTOM
-  // This section is now handled separately at the bottom of the page
-
   // Follow-up
   if (config.instructions.sections.followUp && prescription.followUp) {
     doc.setFont(config.typography.defaultFont, "bold");
@@ -1371,30 +1411,36 @@ function addInstructionsSection(
     doc.setTextColor(...config.colors.primary);
     doc.text("Follow-up", x + 10, y);
 
+    const followUpText = getInstructionField(prescription, "followUp", config);
     y = addTextContent(
       doc,
       y + config.layout.lineSpacing,
       x + config.instructions.indent,
       width - config.instructions.indent,
-      prescription.followUp,
+      followUpText,
       config
     );
     y += 10;
   }
 
-  // Restrictions
+  // Restrictions - With bilingual support
   if (config.instructions.sections.restrictions && prescription.restrictions) {
     doc.setFont(config.typography.defaultFont, "bold");
     doc.setFontSize(config.typography.fontSizes.subheading);
     doc.setTextColor(...config.colors.primary);
     doc.text("Restrictions", x + 10, y);
 
+    const restrictionsText = getInstructionField(
+      prescription,
+      "restrictions",
+      config
+    );
     y = addTextContent(
       doc,
       y + config.layout.lineSpacing,
       x + config.instructions.indent,
       width - config.instructions.indent,
-      prescription.restrictions,
+      restrictionsText,
       config
     );
   }
@@ -1529,12 +1575,14 @@ function addGeneralInstructionsAtBottom(
   config: PDFConfig
 ): number {
   // Calculate dynamic height based on content
+  const instructionsText = getInstructionField(
+    prescription,
+    "instructions",
+    config
+  );
   const instructionsWidth =
     pageWidth - config.page.margins.left - config.page.margins.right - 20;
-  const lines = doc.splitTextToSize(
-    prescription.instructions!,
-    instructionsWidth
-  );
+  const lines = doc.splitTextToSize(instructionsText, instructionsWidth);
   const contentHeight = lines.length * 12;
   const sectionHeight = Math.max(60, contentHeight + 25); // Minimum 60px height
 

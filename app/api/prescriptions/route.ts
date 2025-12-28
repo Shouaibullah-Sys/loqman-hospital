@@ -1,7 +1,7 @@
 // app/api/prescriptions/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db, dbQuery, checkDatabaseConnection } from "@/db/index";
-import { prescriptions, medicines } from "@/db/schema";
+import { prescriptions, medicines, prescriptionTests } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq, and, like, or, inArray, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
@@ -107,12 +107,13 @@ export async function GET(request: NextRequest) {
 
     console.log("Paginated prescription IDs:", prescriptionIds.length);
 
-    // Get prescriptions with medicines
+    // Get prescriptions with medicines and tests
     const prescriptionsData = await dbQuery(async () => {
       return await db
         .select({
           prescription: prescriptions,
           medicine: medicines,
+          prescriptionTest: prescriptionTests,
         })
         .from(prescriptions)
         .where(
@@ -122,23 +123,33 @@ export async function GET(request: NextRequest) {
           )
         )
         .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))
+        .leftJoin(
+          prescriptionTests,
+          eq(prescriptions.id, prescriptionTests.prescriptionId)
+        )
         .orderBy(desc(prescriptions.createdAt));
     });
 
-    // Group prescriptions with their medicines
+    // Group prescriptions with their medicines and tests
     const groupedPrescriptions = prescriptionsData.reduce((acc, row) => {
       const prescription = row.prescription;
       const medicine = row.medicine;
+      const prescriptionTest = row.prescriptionTest;
 
       if (!acc[prescription.id]) {
         acc[prescription.id] = {
           ...prescription,
           medicines: [],
+          tests: [],
         };
       }
 
       if (medicine) {
         acc[prescription.id].medicines.push(medicine);
+      }
+
+      if (prescriptionTest) {
+        acc[prescription.id].tests.push(prescriptionTest);
       }
 
       return acc;
@@ -243,15 +254,21 @@ export async function POST(request: NextRequest) {
           patientAddress: body.patientAddress || "",
           chiefComplaint: body.chiefComplaint || "",
           pulseRate: body.pulseRate || "",
+          heartRate: body.heartRate || "",
           bloodPressure: body.bloodPressure || "",
           temperature: body.temperature || "",
           respiratoryRate: body.respiratoryRate || "",
           oxygenSaturation: body.oxygenSaturation || "",
+          weight: body.weight || "",
+          height: body.height || "",
           allergies: body.allergies || [],
           currentMedications: body.currentMedications || [],
           pastMedicalHistory: body.pastMedicalHistory || "",
           familyHistory: body.familyHistory || "",
           socialHistory: body.socialHistory || "",
+          physicalExam: body.physicalExam || "",
+          medicalExams: body.medicalExams || [],
+          examNotes: body.examNotes || "",
           instructions: body.instructions || "",
           followUp: body.followUp || "",
           restrictions: body.restrictions || "",
@@ -277,6 +294,34 @@ export async function POST(request: NextRequest) {
     });
 
     console.log("Prescription created:", prescription.id);
+
+    // Create prescription tests if medical exams are provided
+    const medicalExams = body.medicalExams || [];
+    if (medicalExams.length > 0) {
+      console.log("Creating prescription tests for:", medicalExams);
+
+      const prescriptionTestsData = medicalExams.map((examName: string) => ({
+        id: uuidv4(),
+        prescriptionId: prescriptionId,
+        testName: examName,
+        notes: body.examNotes || "",
+        priority: "routine",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      try {
+        await dbQuery(async () => {
+          return await db
+            .insert(prescriptionTests)
+            .values(prescriptionTestsData);
+        });
+        console.log("Prescription tests created:", medicalExams.length);
+      } catch (testError) {
+        console.error("Failed to create prescription tests:", testError);
+        // Don't fail the whole request if test creation fails
+      }
+    }
 
     // Create medicines if provided. Accept either `body.prescription` (form) or
     // `body.medicines` (alternate clients). Build an array and insert in one
@@ -364,25 +409,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fetch the complete prescription with medicines
+    // Fetch the complete prescription with medicines and tests
     const completeData = await dbQuery(async () => {
       return await db
         .select({
           prescription: prescriptions,
           medicine: medicines,
+          prescriptionTest: prescriptionTests,
         })
         .from(prescriptions)
         .where(eq(prescriptions.id, prescriptionId))
-        .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId));
+        .leftJoin(medicines, eq(prescriptions.id, medicines.prescriptionId))
+        .leftJoin(
+          prescriptionTests,
+          eq(prescriptions.id, prescriptionTests.prescriptionId)
+        );
     });
 
     const groupedData = completeData.reduce((acc, row) => {
       if (!acc.prescription) {
         acc.prescription = row.prescription;
         acc.medicines = [];
+        acc.tests = [];
       }
       if (row.medicine) {
         acc.medicines.push(row.medicine);
+      }
+      if (row.prescriptionTest) {
+        acc.tests.push(row.prescriptionTest);
       }
       return acc;
     }, {} as any);
@@ -390,6 +444,7 @@ export async function POST(request: NextRequest) {
     const prescriptionWithMedicines = {
       ...groupedData.prescription,
       medicines: groupedData.medicines || [],
+      tests: groupedData.tests || [],
     };
 
     console.log("Returning complete prescription data");

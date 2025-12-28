@@ -107,8 +107,8 @@ Response in Persian:`;
       clinicalNotes: text.slice(0, 300) + "...",
       differentialDiagnosis: "نیازمند معاینه بالینی",
       medications: [],
-      recommendations: ["معاینه فیزیکی کامل", "پایش علائم حیاتی"],
-      warnings: ["این تحلیل جایگزین معاینه پزشک نمی‌شود"],
+      recommendations: ["Complete physical examination", "Monitor vital signs"],
+      warnings: ["This analysis does not replace medical examination"],
       aiModelUsed: model,
     };
   }
@@ -146,13 +146,13 @@ Response in Persian:`;
       differentialDiagnosis: "عفونت ویروسی، باکتریال، یا سایر موارد",
       medications: [],
       recommendations: [
-        "معاینه فیزیکی کامل",
-        "پایش علائم حیاتی",
-        "آزمایشات پاراکلینیک در صورت نیاز",
+        "Complete physical examination",
+        "Monitor vital signs",
+        "Paraclinical tests if needed",
       ],
       warnings: [
-        "این تحلیل پایه است و جایگزین معاینه پزشک نمی‌شود",
-        "در صورت تشدید علائم فوراً مراجعه کنید",
+        "This is a basic analysis and does not replace medical examination",
+        "Seek immediate medical attention if symptoms worsen",
       ],
       aiModelUsed: "local_fallback",
     };
