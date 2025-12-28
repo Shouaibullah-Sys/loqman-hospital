@@ -37,7 +37,6 @@ export interface VoicePrescription {
   chiefComplaint?: string;
   weight?: string;
   height?: string;
-  bmi?: string;
   pulseRate?: string;
   heartRate?: string;
   bloodPressure?: string;

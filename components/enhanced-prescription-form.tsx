@@ -61,7 +61,7 @@ import {
 import { SmartMedicationSearch } from "@/components/SmartMedicationSearch";
 import { TestSearchForm } from "@/components/TestSearchForm";
 import { MultiTextInput } from "@/components/MultiTextInput";
-import { BilingualInput } from "@/components/BilingualInput";
+
 import {
   getFrequencyOptions,
   getDurationOptions,
@@ -170,7 +170,6 @@ export function EnhancedPrescriptionForm({
       oxygenSaturation: prescription.oxygenSaturation || "",
       weight: prescription.weight || "",
       height: prescription.height || "",
-      bmi: prescription.bmi || "",
       allergies: Array.isArray(prescription.allergies)
         ? prescription.allergies
         : [],
@@ -316,28 +315,6 @@ export function EnhancedPrescriptionForm({
   };
 
   const medicinesCount = editablePrescription.medicines.length;
-
-  // Calculate BMI if weight and height are provided
-  const calculateBMI = (): string | null => {
-    const weight = parseFloat(editablePrescription.weight || "");
-    const heightCm = parseFloat(editablePrescription.height || "");
-
-    // Validate inputs: ensure they are positive numbers
-    if (isNaN(weight) || isNaN(heightCm) || weight <= 0 || heightCm <= 0) {
-      updateField("bmi", ""); // Clear BMI if inputs are invalid
-      return null;
-    }
-
-    // Convert height from centimeters to meters
-    const heightM = heightCm / 100;
-    // Calculate BMI using the standard formula
-    const bmiValue = weight / (heightM * heightM);
-    // Format to one decimal place for display
-    const bmiFormatted = bmiValue.toFixed(1);
-
-    updateField("bmi", bmiFormatted);
-    return bmiFormatted;
-  };
 
   // Format date for display
   const formattedDate = new Date(
@@ -707,7 +684,6 @@ export function EnhancedPrescriptionForm({
                                 value={editablePrescription.weight || ""}
                                 onChange={(e) => {
                                   updateField("weight", e.target.value);
-                                  calculateBMI();
                                 }}
                                 className="mt-1 text-sm"
                                 placeholder="70"
@@ -723,22 +699,9 @@ export function EnhancedPrescriptionForm({
                                 value={editablePrescription.height || ""}
                                 onChange={(e) => {
                                   updateField("height", e.target.value);
-                                  calculateBMI();
                                 }}
                                 className="mt-1 text-sm"
                                 placeholder="175"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="bmi" className="text-xs">
-                                BMI
-                              </Label>
-                              <Input
-                                id="bmi"
-                                value={editablePrescription.bmi || ""}
-                                readOnly
-                                className="mt-1 text-sm bg-muted"
-                                placeholder="Auto calculated"
                               />
                             </div>
                             <div>
@@ -1047,7 +1010,7 @@ export function EnhancedPrescriptionForm({
                       <div className="space-y-6">
                         <div className="border border-border/50 dark:border-border/30 rounded-lg overflow-hidden bg-card">
                           <div className="overflow-x-auto">
-                            <table className="w-full min-w-[1100px]">
+                            <table className="w-full min-w-[800px] lg:min-w-[1100px]">
                               <thead>
                                 <tr className="bg-muted/70 dark:border-border/50">
                                   <th className="text-right p-4 text-sm font-medium w-[220px] border-r border-border/20">
@@ -1164,159 +1127,85 @@ export function EnhancedPrescriptionForm({
                                         />
                                       </td>
                                       <td className="p-3">
-                                        <BilingualInput
-                                          label=""
-                                          englishValue={
-                                            medicine.dosage === "custom"
-                                              ? medicine.dosage === "custom"
-                                                ? ""
-                                                : medicine.dosage
-                                              : medicine.dosage
-                                          }
-                                          persianValue={
-                                            medicine.dosagePersian || ""
-                                          }
-                                          onEnglishChange={(value) => {
+                                        <Input
+                                          onChange={(e) => {
                                             if (
                                               medicine.dosage === "custom" ||
                                               !DOSAGE_OPTIONS.find(
                                                 (opt) =>
-                                                  opt.label === value &&
+                                                  opt.label ===
+                                                    e.target.value &&
                                                   opt.value !== "custom"
                                               )
                                             ) {
                                               updateMedicine(
                                                 index,
                                                 "dosage",
-                                                value === "custom" ? "" : value
+                                                e.target.value === "custom"
+                                                  ? ""
+                                                  : e.target.value
                                               );
                                             } else {
                                               updateMedicine(
                                                 index,
                                                 "dosage",
-                                                value
+                                                e.target.value
                                               );
                                             }
                                           }}
-                                          onPersianChange={(value) =>
-                                            updateMedicine(
-                                              index,
-                                              "dosagePersian",
-                                              value
-                                            )
-                                          }
                                           placeholder="Enter dosage (e.g., 300mg)"
-                                          showAutoTranslate={false}
                                           className="text-sm"
                                         />
                                       </td>
                                       <td className="p-3">
-                                        <BilingualInput
-                                          label=""
-                                          englishValue={
-                                            medicine.frequency || ""
-                                          }
-                                          persianValue={
-                                            medicine.frequencyPersian || ""
-                                          }
-                                          onEnglishChange={(value) =>
+                                        <Input
+                                          onChange={(e) =>
                                             updateMedicine(
                                               index,
                                               "frequency",
-                                              value
-                                            )
-                                          }
-                                          onPersianChange={(value) =>
-                                            updateMedicine(
-                                              index,
-                                              "frequencyPersian",
-                                              value
+                                              e.target.value
                                             )
                                           }
                                           placeholder="Select frequency"
-                                          showAutoTranslate={true}
-                                          translationKey={medicine.frequency}
                                           className="text-sm"
                                         />
                                       </td>
                                       <td className="p-3">
-                                        <BilingualInput
-                                          label=""
-                                          englishValue={medicine.duration || ""}
-                                          persianValue={
-                                            medicine.durationPersian || ""
-                                          }
-                                          onEnglishChange={(value) =>
+                                        <Input
+                                          onChange={(e) =>
                                             updateMedicine(
                                               index,
                                               "duration",
-                                              value
-                                            )
-                                          }
-                                          onPersianChange={(value) =>
-                                            updateMedicine(
-                                              index,
-                                              "durationPersian",
-                                              value
+                                              e.target.value
                                             )
                                           }
                                           placeholder="Select duration"
-                                          showAutoTranslate={true}
-                                          translationKey={medicine.duration}
                                           className="text-sm"
                                         />
                                       </td>
                                       <td className="p-3">
-                                        <BilingualInput
-                                          label=""
-                                          englishValue={
-                                            medicine.form || "tablet"
-                                          }
-                                          persianValue={
-                                            medicine.formPersian || ""
-                                          }
-                                          onEnglishChange={(value) =>
-                                            updateMedicine(index, "form", value)
-                                          }
-                                          onPersianChange={(value) =>
+                                        <Input
+                                          onChange={(e) =>
                                             updateMedicine(
                                               index,
-                                              "formPersian",
-                                              value
+                                              "form",
+                                              e.target.value
                                             )
                                           }
                                           placeholder="Form"
-                                          showAutoTranslate={true}
-                                          translationKey={medicine.form}
                                           className="text-sm"
                                         />
                                       </td>
                                       <td className="p-3">
-                                        <BilingualInput
-                                          label=""
-                                          englishValue={
-                                            medicine.instructions || ""
-                                          }
-                                          persianValue={
-                                            medicine.instructionsPersian || ""
-                                          }
-                                          onEnglishChange={(value) =>
+                                        <Input
+                                          onChange={(e) =>
                                             updateMedicine(
                                               index,
                                               "instructions",
-                                              value
-                                            )
-                                          }
-                                          onPersianChange={(value) =>
-                                            updateMedicine(
-                                              index,
-                                              "instructionsPersian",
-                                              value
+                                              e.target.value
                                             )
                                           }
                                           placeholder="Enter instructions"
-                                          showAutoTranslate={true}
-                                          translationKey={medicine.instructions}
                                           className="text-sm"
                                         />
                                       </td>

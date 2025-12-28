@@ -17,7 +17,6 @@ export const testPrescriptionWithEmptyPhysicalExam: VoicePrescription = {
   chiefComplaint: "Headache and fatigue",
   weight: "70",
   height: "175",
-  bmi: "22.9",
   pulseRate: "72",
   heartRate: "72",
   bloodPressure: "120/80",

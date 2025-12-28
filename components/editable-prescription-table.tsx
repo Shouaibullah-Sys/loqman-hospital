@@ -478,7 +478,7 @@ export function EditablePrescriptionTable({
 
               <div className="border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1000px]">
+                  <table className="w-full min-w-[700px] lg:min-w-[1000px]">
                     <thead>
                       <tr className="bg-muted border-b">
                         <th className="text-right p-3 font-medium">

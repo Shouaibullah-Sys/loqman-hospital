@@ -122,8 +122,7 @@ export function PrescriptionDetails({
         prescription.respiratoryRate ||
         prescription.oxygenSaturation ||
         prescription.weight ||
-        prescription.height ||
-        prescription.bmi) && (
+        prescription.height) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -228,9 +227,7 @@ export function PrescriptionDetails({
             )}
 
             {/* Anthropometry */}
-            {(prescription.weight ||
-              prescription.height ||
-              prescription.bmi) && (
+            {(prescription.weight || prescription.height) && (
               <div>
                 <h4 className="font-medium mb-3 flex items-center gap-2">
                   <Ruler className="h-4 w-4" />
@@ -259,19 +256,6 @@ export function PrescriptionDetails({
                         </label>
                         <p className="text-sm font-medium">
                           {prescription.height}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {prescription.bmi && (
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-purple-500" />
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">
-                          BMI
-                        </label>
-                        <p className="text-sm font-medium">
-                          {prescription.bmi}
                         </p>
                       </div>
                     </div>

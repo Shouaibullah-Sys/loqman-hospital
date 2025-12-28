@@ -36,7 +36,6 @@ export const prescriptions = pgTable("prescriptions", {
   // Anthropometry
   weight: text("weight"),
   height: text("height"),
-  bmi: text("bmi"),
 
   // Medical History
   allergies: jsonb("allergies").$type<string[]>(),

@@ -115,10 +115,10 @@ export function SmartMedicationSearch({
 
   // Sync searchTerm with external value
   useEffect(() => {
-    if (value !== undefined && !isSelecting) {
+    if (value !== undefined) {
       setSearchTerm(value);
     }
-  }, [value, isSelecting]);
+  }, [value]);
 
   const saveToHistory = (term: string) => {
     if (!term.trim()) return;
@@ -216,8 +216,8 @@ export function SmartMedicationSearch({
       console.log("Final combined suggestions:", combined.length);
       setSuggestions(combined.slice(0, 15));
 
-      // Auto-open popover if we have suggestions
-      if (combined.length > 0 && !open && !isSelecting) {
+      // Auto-open popover if we have suggestions and we're not already open
+      if (combined.length > 0 && !open) {
         setOpen(true);
       }
     } catch (error) {
@@ -234,11 +234,6 @@ export function SmartMedicationSearch({
       clearTimeout(debounceTimer.current);
     }
 
-    // Don't search if we're in the middle of selecting
-    if (isSelecting) {
-      return;
-    }
-
     debounceTimer.current = setTimeout(() => {
       searchMedications(searchTerm);
     }, 300);
@@ -248,12 +243,13 @@ export function SmartMedicationSearch({
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [searchTerm, isSelecting]);
+  }, [searchTerm]);
 
   const handleSelect = (suggestion: any) => {
     console.log("Selected suggestion:", suggestion);
-    setIsSelecting(true); // Mark that we're selecting
     const selectedValue = suggestion.label;
+
+    // Update search term immediately to prevent re-render issues
     setSearchTerm(selectedValue);
     setOpen(false); // Ensure popover closes
     setSuggestions([]); // Clear suggestions
@@ -267,10 +263,8 @@ export function SmartMedicationSearch({
       onSuggestionSelect(suggestion.data);
     }
 
-    // Reset selecting state after a short delay
-    setTimeout(() => {
-      setIsSelecting(false);
-    }, 100);
+    // Don't set isSelecting to prevent the popover reopening
+    // This was causing the main issue where the search would reopen
   };
 
   const clearSearch = () => {
@@ -332,7 +326,7 @@ export function SmartMedicationSearch({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <Popover open={open && !isSelecting} onOpenChange={handleOpenChange}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <div className="relative">
             <div className="relative">

@@ -67,7 +67,7 @@ export const useColumns = ({
       respiratoryRate: prescription.respiratoryRate || "",
       oxygenSaturation: prescription.oxygenSaturation || "",
       medicationUsage: (prescription.currentMedications || []).join(", "),
-      relevantPastMedicalHistory: prescription.pastMedicalHistory || "",
+      pastMedicalHistory: prescription.pastMedicalHistory || "",
 
       medicines: medications,
       instructions: prescription.instructions || "",
@@ -105,9 +105,27 @@ export const useColumns = ({
       accessorKey: "patientName",
       header: "بیمار",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">{row.original.patientName}</span>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center border-2 border-primary/20">
+              <User className="h-5 w-5 text-primary" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background"></div>
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground truncate max-w-[120px]">
+              {row.original.patientName}
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">
+                {row.original.patientAge} سال
+              </span>
+              <span className="text-xs text-muted-foreground">•</span>
+              <span className="text-xs text-muted-foreground">
+                {row.original.patientGender}
+              </span>
+            </div>
+          </div>
         </div>
       ),
     },
@@ -133,10 +151,28 @@ export const useColumns = ({
         const date = row.original.prescriptionDate
           ? new Date(row.original.prescriptionDate)
           : new Date();
+        const isToday = date.toDateString() === new Date().toDateString();
         return (
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span>{formatJalali(date, "yyyy/MM/dd")}</span>
+          <div className="flex flex-col items-center gap-1">
+            <div
+              className={`flex items-center gap-2 text-sm ${
+                isToday ? "text-primary font-semibold" : "text-foreground"
+              }`}
+            >
+              <Calendar
+                className={`h-4 w-4 ${
+                  isToday ? "text-primary" : "text-muted-foreground"
+                }`}
+              />
+              <span className="font-medium">
+                {formatJalali(date, "yyyy/MM/dd")}
+              </span>
+            </div>
+            {isToday && (
+              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
+                امروز
+              </span>
+            )}
           </div>
         );
       },
@@ -152,15 +188,55 @@ export const useColumns = ({
     },
     {
       accessorKey: "medicines",
-      header: "تعداد داروها",
+      header: "داروها",
       cell: ({ row }) => {
-        // Access the medicines field which contains the medicines array
         const medicines = row.original.medicines || [];
+        const medicationCount = medicines.length;
+        const getMedicineLevel = (count: number) => {
+          if (count === 0)
+            return {
+              level: "بدون دارو",
+              color: "bg-gray-100 text-gray-600",
+              icon: "",
+            };
+          if (count <= 2)
+            return {
+              level: "کم",
+              color: "bg-green-100 text-green-700",
+              icon: "💊",
+            };
+          if (count <= 4)
+            return {
+              level: "متوسط",
+              color: "bg-yellow-100 text-yellow-700",
+              icon: "💊💊",
+            };
+          return {
+            level: "زیاد",
+            color: "bg-red-100 text-red-700",
+            icon: "💊💊💊",
+          };
+        };
+        const medicineInfo = getMedicineLevel(medicationCount);
+
         return (
-          <div className="text-center">
-            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs font-medium px-2 py-1 rounded-full">
-              {medicines.length} دارو
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{medicineInfo.icon}</span>
+              <span className="text-2xl font-bold text-foreground">
+                {medicationCount}
+              </span>
+            </div>
+            <span
+              className={`text-xs px-2 py-1 rounded-full font-medium ${medicineInfo.color}`}
+            >
+              {medicineInfo.level}
             </span>
+            {medicationCount > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>دارو</span>
+              </div>
+            )}
           </div>
         );
       },
@@ -173,37 +249,52 @@ export const useColumns = ({
         const statusConfig = {
           active: {
             label: "فعال",
-            color:
-              "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+            color: "bg-emerald-100 text-emerald-800 border-emerald-200",
+            icon: "✓",
+            description: "نسخه فعال و قابل استفاده",
           },
           completed: {
             label: "تکمیل شده",
-            color:
-              "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+            color: "bg-blue-100 text-blue-800 border-blue-200",
+            icon: "✓",
+            description: "درمان تکمیل شده",
           },
           cancelled: {
             label: "لغو شده",
-            color:
-              "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
+            color: "bg-red-100 text-red-800 border-red-200",
+            icon: "✗",
+            description: "نسخه لغو شده",
           },
           draft: {
             label: "پیش‌نویس",
-            color:
-              "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
+            color: "bg-amber-100 text-amber-800 border-amber-200",
+            icon: "✎",
+            description: "پیش‌نویس ذخیره نشده",
           },
         };
 
         const config = statusConfig[status as keyof typeof statusConfig] || {
           label: status,
-          color: "bg-gray-100 text-gray-800",
+          color: "bg-gray-100 text-gray-800 border-gray-200",
+          icon: "?",
+          description: "وضعیت نامشخص",
         };
 
         return (
-          <span
-            className={`text-xs font-medium px-2 py-1 rounded-full ${config.color}`}
-          >
-            {config.label}
-          </span>
+          <div className="flex flex-col items-center gap-1">
+            <div
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-semibold ${config.color}`}
+            >
+              <span>{config.icon}</span>
+              <span>{config.label}</span>
+            </div>
+            <span
+              className="text-xs text-muted-foreground text-center max-w-[80px] truncate"
+              title={config.description}
+            >
+              {config.description}
+            </span>
+          </div>
         );
       },
     },
@@ -215,22 +306,22 @@ export const useColumns = ({
         const isDownloading = downloadingId === prescription.id;
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onViewDetails(prescription)}
-              className="flex items-center gap-1 h-8 text-foreground hover:text-foreground hover:bg-accent"
+              className="flex items-center gap-1 h-8 px-3 text-xs sm:text-sm hover:bg-primary/10 hover:border-primary/20 transition-colors"
             >
-              <Eye className="h-4 w-4" />
-              جزئیات
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">جزئیات</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleDownload(prescription)}
               disabled={isDownloading}
-              className="flex items-center gap-1 h-8 text-foreground hover:text-foreground hover:bg-accent"
+              className="flex items-center gap-1 h-8 px-3 text-xs sm:text-sm hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-950/20 transition-colors"
             >
               {isDownloading ? (
                 <>
@@ -239,8 +330,8 @@ export const useColumns = ({
                 </>
               ) : (
                 <>
-                  <Download className="h-4 w-4" />
-                  PDF
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">PDF</span>
                 </>
               )}
             </Button>
@@ -250,10 +341,10 @@ export const useColumns = ({
               onClick={() =>
                 handleDelete(prescription.id, prescription.patientName)
               }
-              className="flex items-center gap-1 h-8 hover:text-white"
+              className="flex items-center gap-1 h-8 px-3 text-xs sm:text-sm hover:bg-red-600 transition-colors"
             >
-              <Trash2 className="h-4 w-4" />
-              حذف
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">حذف</span>
             </Button>
           </div>
         );
