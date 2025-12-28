@@ -2,6 +2,7 @@
 
 import { jsPDF } from "jspdf";
 import { format } from "date-fns";
+import "../vazirmatn-normal";
 
 export interface Medication {
   medicine: string;
@@ -251,7 +252,7 @@ export const defaultPDFConfig: PDFConfig = {
   },
 
   typography: {
-    defaultFont: "helvetica",
+    defaultFont: "vazirmatn",
     fontSizes: {
       title: 14,
       subtitle: 12,
