@@ -150,8 +150,10 @@ export interface PDFConfig {
     leftSectionHeights: {
       chiefComplaint: number;
       medicalHistory: number;
+      pastMedicalHistory: number;
       labExams: number;
       diagnosis: number;
+      allergies: number;
       familyHistory: number;
       socialHistory: number;
       examNotes: number;
@@ -175,8 +177,10 @@ export interface PDFConfig {
     sections: {
       chiefComplaint: boolean;
       medicalHistory: boolean;
+      pastMedicalHistory: boolean;
       labExams: boolean;
       diagnosis: boolean;
+      allergies: boolean;
       familyHistory: boolean;
       socialHistory: boolean;
       examNotes: boolean;
@@ -319,8 +323,10 @@ export const defaultPDFConfig: PDFConfig = {
     leftSectionHeights: {
       chiefComplaint: 50, // 50pt height
       medicalHistory: 70, // 70pt height
-      labExams: 90, // 90pt height (more space for lists)
+      pastMedicalHistory: 70, // 70pt height
+      labExams: 120, // 120pt height (increased by 30px for more space)
       diagnosis: 60, // 60pt height
+      allergies: 60, // 40pt height
       familyHistory: 50, // 50pt height
       socialHistory: 50, // 50pt height
       examNotes: 40, // 40pt height
@@ -342,11 +348,13 @@ export const defaultPDFConfig: PDFConfig = {
     sections: {
       chiefComplaint: true,
       medicalHistory: true,
+      pastMedicalHistory: true,
       labExams: true,
       diagnosis: true,
+      allergies: true,
       familyHistory: true,
       socialHistory: true,
-      examNotes: true,
+      examNotes: false,
     },
     boxStyle: "rounded",
     autoFontSize: true, // Automatically adjust font size
@@ -584,20 +592,119 @@ function drawFixedHeightSection(
   // Optimize font size for content
   let fontSize = config.typography.fontSizes.tiny;
   if (config.clinicalHistory.autoFontSize) {
-    fontSize = optimizeFontSizeForContent(
-      doc,
-      content,
-      contentWidth,
-      contentHeight,
-      config
-    );
+    // For structured content (Lab Exams), use a different optimization approach
+    if (
+      typeof content === "object" &&
+      content !== null &&
+      !Array.isArray(content) &&
+      "medicalExams" in content
+    ) {
+      // Estimate height for structured content
+      let estimatedLines = 0;
+      if ((content as any).medicalExams?.length) {
+        estimatedLines += (content as any).medicalExams.length;
+      }
+      if ((content as any).examNotes) {
+        estimatedLines += 3; // Title + exam notes content
+      }
+      fontSize = optimizeFontSizeForContent(
+        doc,
+        Array(estimatedLines).fill("Sample text"), // Dummy content for size calculation
+        contentWidth,
+        contentHeight,
+        config
+      );
+    } else {
+      fontSize = optimizeFontSizeForContent(
+        doc,
+        content,
+        contentWidth,
+        contentHeight,
+        config
+      );
+    }
   }
 
   doc.setFont(config.typography.defaultFont, "normal");
   doc.setFontSize(fontSize);
   doc.setTextColor(...config.colors.textDark);
 
-  if (Array.isArray(content) && content.length > 0) {
+  if (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content) &&
+    "medicalExams" in content
+  ) {
+    // Special handling for Lab Exams structured content
+    let currentY = contentY;
+    const lineHeight = fontSize * config.typography.lineHeights.normal;
+
+    // Draw medical exams as numbered list
+    if ((content as any).medicalExams?.length) {
+      for (let i = 0; i < (content as any).medicalExams.length; i++) {
+        const item = (content as any).medicalExams[i];
+        if (currentY + lineHeight > y + height - padding.bottom) {
+          // Add "..." if content overflows
+          doc.setFont(config.typography.defaultFont, "italic");
+          doc.text(
+            "...",
+            x + width - padding.right - 10,
+            y + height - padding.bottom - 2
+          );
+          break;
+        }
+
+        const itemText = `${i + 1}. ${item}`;
+        const lines = doc.splitTextToSize(itemText, contentWidth);
+
+        for (let j = 0; j < lines.length; j++) {
+          if (currentY + lineHeight > y + height - padding.bottom) break;
+          doc.text(lines[j], x + padding.left, currentY);
+          currentY += lineHeight;
+        }
+
+        currentY += 2; // Small gap between items
+      }
+    }
+
+    // Add exam notes section if present
+    if ((content as any).examNotes) {
+      // Add some spacing before exam notes
+      currentY += 5;
+
+      // Draw "Exam Notes" title
+      doc.setFont(config.typography.defaultFont, "bold");
+      doc.setFontSize(fontSize + 1);
+      doc.setTextColor(...config.colors.primary);
+      doc.text("Exam Notes:", x + padding.left, currentY);
+      currentY += lineHeight + 2;
+
+      // Draw exam notes content
+      doc.setFont(config.typography.defaultFont, "normal");
+      doc.setFontSize(fontSize);
+      doc.setTextColor(...config.colors.textDark);
+
+      const examNotesLines = doc.splitTextToSize(
+        (content as any).examNotes,
+        contentWidth
+      );
+      for (let i = 0; i < examNotesLines.length; i++) {
+        if (currentY + lineHeight > y + height - padding.bottom) {
+          // Add "..." if content overflows
+          doc.setFont(config.typography.defaultFont, "italic");
+          doc.text(
+            "...",
+            x + width - padding.right - 10,
+            y + height - padding.bottom - 2
+          );
+          break;
+        }
+
+        doc.text(examNotesLines[i], x + padding.left, currentY);
+        currentY += lineHeight;
+      }
+    }
+  } else if (Array.isArray(content) && content.length > 0) {
     // Draw as numbered list
     let currentY = contentY;
     const lineHeight = fontSize * config.typography.lineHeights.normal;
@@ -698,29 +805,59 @@ function calculateLeftColumnLayout(
   }
 
   if (
-    prescription.medicalExams?.length &&
-    config.clinicalHistory.sections.labExams
+    prescription.pastMedicalHistory &&
+    config.clinicalHistory.sections.pastMedicalHistory
   ) {
     sections.push({
+      title: "Past Medical History",
+      content: prescription.pastMedicalHistory,
+      height: config.layout.leftSectionHeights.pastMedicalHistory,
+    });
+    totalHeight +=
+      config.layout.leftSectionHeights.pastMedicalHistory +
+      config.layout.sectionSpacing;
+  }
+
+  if (
+    (prescription.medicalExams?.length || prescription.examNotes) &&
+    config.clinicalHistory.sections.labExams
+  ) {
+    // Create structured content for Lab Exams section
+    let labExamContent: any = {};
+
+    // Add medical exams as numbered list
+    if (prescription.medicalExams?.length) {
+      labExamContent.medicalExams = prescription.medicalExams;
+    }
+
+    // Add exam notes as separate section
+    if (prescription.examNotes) {
+      labExamContent.examNotes = prescription.examNotes;
+    }
+
+    sections.push({
       title: "Lab Exams",
-      content: prescription.medicalExams,
+      content: labExamContent,
       height: config.layout.leftSectionHeights.labExams,
     });
     totalHeight +=
       config.layout.leftSectionHeights.labExams + config.layout.sectionSpacing;
   }
 
+  // Note: Diagnosis section would be added here if prescription data included diagnosis
+  // For now, it's available in config but not populated from prescription data
+
   if (
     prescription.allergies?.length &&
-    config.clinicalHistory.sections.diagnosis
+    config.clinicalHistory.sections.allergies
   ) {
     sections.push({
       title: "Diagnosis",
       content: prescription.allergies,
-      height: config.layout.leftSectionHeights.diagnosis,
+      height: config.layout.leftSectionHeights.allergies,
     });
     totalHeight +=
-      config.layout.leftSectionHeights.diagnosis + config.layout.sectionSpacing;
+      config.layout.leftSectionHeights.allergies + config.layout.sectionSpacing;
   }
 
   if (
@@ -751,18 +888,14 @@ function calculateLeftColumnLayout(
       config.layout.sectionSpacing;
   }
 
-  if (prescription.examNotes && config.clinicalHistory.sections.examNotes) {
-    sections.push({
-      title: "Exam Notes",
-      content: prescription.examNotes,
-      height: config.layout.leftSectionHeights.examNotes,
-    });
-    totalHeight += config.layout.leftSectionHeights.examNotes;
-  }
-
   // Remove last section spacing
   if (sections.length > 0) {
     totalHeight -= config.layout.sectionSpacing;
+  }
+
+  // Ensure minimum height for left column even if no sections
+  if (totalHeight === 0) {
+    totalHeight = 100; // Minimum height for empty left column
   }
 
   return { totalHeight, sections };
@@ -817,7 +950,9 @@ export async function generatePrescriptionPDF(
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  let y = config.page.margins.top;
+  // Add 200px free space at the top
+  const topSpacing = 100;
+  let y = config.page.margins.top + topSpacing;
 
   // ==================== PATIENT INFORMATION ====================
 
@@ -978,9 +1113,8 @@ export async function generatePrescriptionPDF(
   // ==================== SIGNATURE ====================
 
   if (config.signature.show) {
-    const footerHeight = config.footer.show ? config.footer.height : 0;
-    const signatureY = Math.min(pageHeight - footerHeight - 40, yRight + 20);
-    addCompactSignature(doc, signatureY, pageWidth, prescription, config);
+    // Use fixed position at bottom of page
+    addCompactSignature(doc, yRight, pageWidth, prescription, config);
   }
 
   // ==================== FOOTER ====================
@@ -1412,12 +1546,22 @@ function addCompactSignature(
   prescription: VoicePrescription,
   config: PDFConfig
 ) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const footerHeight = config.footer.show ? config.footer.height : 0;
+
+  // Fixed position at bottom of page (above footer)
+  const signatureY = pageHeight - footerHeight - 60;
   const rightSectionX = pageWidth - config.page.margins.right - 200;
 
   // Signature line with green color
   doc.setDrawColor(...config.colors.primary);
   doc.setLineWidth(config.signature.lineWidth);
-  doc.line(rightSectionX, y, rightSectionX + config.signature.lineLength, y);
+  doc.line(
+    rightSectionX,
+    signatureY,
+    rightSectionX + config.signature.lineLength,
+    signatureY
+  );
 
   // Doctor name
   doc.setFont(config.typography.defaultFont, "bold");
@@ -1426,7 +1570,7 @@ function addCompactSignature(
   doc.text(
     prescription.doctorName,
     rightSectionX + config.signature.lineLength / 2,
-    y + 15,
+    signatureY + 15,
     { align: "center" }
   );
 
@@ -1438,7 +1582,7 @@ function addCompactSignature(
     doc.text(
       "Medical Practitioner",
       rightSectionX + config.signature.lineLength / 2,
-      y + 25,
+      signatureY + 25,
       { align: "center" }
     );
   }
