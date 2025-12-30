@@ -347,13 +347,44 @@ export async function POST(request: NextRequest) {
     if (incomingMeds.length > 0) {
       console.log("Incoming medicines payload:", incomingMeds);
 
+      // DEBUG: Log each medicine individually to see the issue
+      incomingMeds.forEach((med, index) => {
+        console.log(`Medicine ${index} details:`, {
+          index,
+          medicine: med.medicine,
+          name: med.name,
+          dosage: med.dosage,
+          form: med.form,
+          frequency: med.frequency,
+          duration: med.duration,
+          hasMedicineField: "medicine" in med,
+          hasNameField: "name" in med,
+          medicineLength: med.medicine?.length || 0,
+          nameLength: med.name?.length || 0,
+          medicineTrimmed: med.medicine?.trim() || "",
+          nameTrimmed: med.name?.trim() || "",
+        });
+      });
+
       const medicinesData = incomingMeds
         .map((med: IncomingMedicine) => {
-          const medicineName = med.medicine || med.name || "";
-          const dosage = med.dosage || ""; // fix mapping; fall back to empty string
-          if (!medicineName || !dosage) return null; // skip incomplete entries
+          const medicineName = (med.medicine || med.name || "").trim();
+          const dosage = (med.dosage || "").trim(); // fix mapping; fall back to empty string
 
-          return {
+          console.log(
+            `Processing medicine: "${medicineName}" with dosage: "${dosage}"`
+          );
+
+          if (!medicineName || !dosage) {
+            console.log(
+              `Skipping medicine ${
+                medicineName || "unknown"
+              }: missing medicine name or dosage`
+            );
+            return null; // skip incomplete entries
+          }
+
+          const processedMed = {
             id: uuidv4(),
             prescriptionId: prescriptionId,
             medicine: medicineName,
@@ -369,6 +400,9 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
             updatedAt: new Date(),
           } as any;
+
+          console.log(`Processed medicine data:`, processedMed);
+          return processedMed;
         })
         .filter(Boolean) as any[];
 

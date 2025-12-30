@@ -1,4 +1,3 @@
-// components/SmartMedicationSearch.tsx
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -12,6 +11,7 @@ import {
   History,
   X,
   Loader2,
+  MedalIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { aiMedicationService } from "@/services/aiMedicationService";
@@ -96,6 +96,26 @@ export function SmartMedicationSearch({
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const debounceTimer = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  // Helper functions for type-safe data access - MOVE THESE TO THE TOP
+  const getMedicationFromData = useCallback(
+    (data: AISuggestion | Medication | string): Medication | null => {
+      if (typeof data === "string") return null;
+      if ("medication" in data) return data.medication;
+      return data as Medication;
+    },
+    []
+  );
+
+  const getAISuggestionFromData = useCallback(
+    (data: AISuggestion | Medication | string): AISuggestion | null => {
+      if (typeof data === "string") return null;
+      if ("medication" in data && "reasoning" in data)
+        return data as AISuggestion;
+      return null;
+    },
+    []
+  );
+
   // Load search history from localStorage
   useEffect(() => {
     try {
@@ -155,9 +175,20 @@ export function SmartMedicationSearch({
 
         // Try AI service first
         try {
+          // Transform context to match service expectations
+          const serviceContext = context
+            ? {
+                ...context,
+                diagnosis:
+                  context.diagnosis && Array.isArray(context.diagnosis)
+                    ? context.diagnosis[0] // Take first diagnosis if it's an array
+                    : context.diagnosis,
+              }
+            : undefined;
+
           smartSuggestions = await aiMedicationService.smartAutocomplete(
             term,
-            context
+            serviceContext
           );
         } catch (aiError) {
           console.error("AI service failed, using local database:", aiError);
@@ -173,14 +204,22 @@ export function SmartMedicationSearch({
             (s): SearchSuggestion => ({
               type: "ai_suggestion" as const,
               data: s,
-              label: s.medication.name || "Unknown medication",
+              label:
+                s.medication.name ||
+                s.medication.generic_name ||
+                "Unknown medication",
               description:
-                s.medication.generic_name || s.reasoning || "Medication",
+                s.medication.generic_name ||
+                s.reasoning ||
+                "AI Suggested Medication",
               confidence: s.confidence,
               category: Array.isArray(s.medication.category)
                 ? s.medication.category[0] || "General"
                 : s.medication.category || "General",
-              value: s.medication.name || "Unknown medication",
+              value:
+                s.medication.name ||
+                s.medication.generic_name ||
+                "Unknown medication", // CRITICAL: Ensure this is a proper string
             })
           );
         } else if (localSuggestions.length > 0) {
@@ -188,8 +227,8 @@ export function SmartMedicationSearch({
             (f): SearchSuggestion => ({
               type: "fallback" as const,
               data: f,
-              label: f.name || "Unknown",
-              description: f.generic_name || "Medication",
+              label: f.name || f.generic_name || "Unknown",
+              description: f.generic_name || f.name || "Local Medication",
               confidence: 0.6,
               category:
                 typeof f.category === "string"
@@ -197,7 +236,7 @@ export function SmartMedicationSearch({
                   : Array.isArray(f.category)
                   ? f.category[0] || "General"
                   : "General",
-              value: f.name || "Unknown",
+              value: f.name || f.generic_name || "Unknown", // CRITICAL: Ensure this is a proper string
             })
           );
         }
@@ -217,7 +256,7 @@ export function SmartMedicationSearch({
                   description: "Auto-complete",
                   confidence: 0.5,
                   category: "General",
-                  value: c,
+                  value: c, // CRITICAL: Ensure this is a string
                 })
               );
             }
@@ -273,35 +312,62 @@ export function SmartMedicationSearch({
         // If no matching suggestion, just update the value
         setSearchTerm(selectedValue);
         if (onChange) {
-          onChange(selectedValue);
+          onChange(selectedValue, undefined); // Pass undefined for medication
         }
         return;
       }
 
-      // Update search term with the value (actual medicine name) for consistency
-      setSearchTerm(suggestion.value);
+      // Extract the medication name - CRITICAL FIX
+      let medicationName = suggestion.label; // Use label first as it's more reliable
+
+      // Fallback to value if label is not available
+      if (
+        !medicationName ||
+        medicationName === "Unknown medication" ||
+        medicationName === "Unknown"
+      ) {
+        medicationName = suggestion.value;
+      }
+
+      // If we have the actual medication data, try to get the name from it
+      const medicationData = getMedicationFromData(suggestion.data);
+      if (medicationData?.name && medicationData.name.trim()) {
+        medicationName = medicationData.name.trim();
+      } else if (
+        medicationData?.generic_name &&
+        medicationData.generic_name.trim()
+      ) {
+        medicationName = medicationData.generic_name.trim();
+      }
+
+      console.log("Final medication name extracted:", medicationName);
+
+      // Update search term with the medication name
+      setSearchTerm(medicationName);
 
       // Clear suggestions
       setSuggestions([]);
 
       // Save to history using the actual value
-      saveToHistory(suggestion.value);
+      saveToHistory(medicationName);
 
       // Call onChange with the selected value and medication data
       if (onChange) {
-        console.log(
-          "Calling onChange with:",
-          suggestion.value,
-          suggestion.data
-        );
-        onChange(suggestion.value, suggestion.data);
+        console.log("Calling onChange with:", medicationName, suggestion.data);
+        onChange(medicationName, suggestion.data); // Ensure first param is the name string
       }
 
       if (onSuggestionSelect && suggestion.type === "ai_suggestion") {
         onSuggestionSelect(suggestion.data);
       }
     },
-    [suggestions, onChange, onSuggestionSelect, saveToHistory]
+    [
+      suggestions,
+      onChange,
+      onSuggestionSelect,
+      saveToHistory,
+      getMedicationFromData,
+    ]
   );
 
   const clearSearch = useCallback(() => {
@@ -313,33 +379,14 @@ export function SmartMedicationSearch({
     }
   }, [onChange]);
 
-  // Helper functions for type-safe data access
-  const getMedicationFromData = useCallback(
-    (data: AISuggestion | Medication | string): Medication | null => {
-      if (typeof data === "string") return null;
-      if ("medication" in data) return data.medication;
-      return data as Medication;
-    },
-    []
-  );
-
-  const getAISuggestionFromData = useCallback(
-    (data: AISuggestion | Medication | string): AISuggestion | null => {
-      if (typeof data === "string") return null;
-      if ("medication" in data && "reasoning" in data)
-        return data as AISuggestion;
-      return null;
-    },
-    []
-  );
-
   // Generate options for the Autocomplete component
   const autocompleteOptions = [
     // History items when no search term
     ...(searchTerm === ""
-      ? searchHistory.map((term) => ({
+      ? searchHistory.map((term, index) => ({
           label: term,
           value: term,
+          key: `history-${index}-${term}`, // Unique key for history items
           render: (
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
@@ -460,12 +507,17 @@ export function SmartMedicationSearch({
           .getAll()
           .sort((a, b) => (b.popular_score || 0) - (a.popular_score || 0))
           .slice(0, 5)
-          .map((med) => ({
+          .map((med, index) => ({
             label: med.name || "Unknown",
             value: med.name || "Unknown",
+            key: `popular-${index}-${
+              med.id ||
+              med.name?.replace(/\s+/g, "_").toLowerCase() ||
+              "unknown"
+            }`, // Unique key for popular medications
             render: (
               <div className="flex items-center gap-2">
-                <Pill className="h-4 w-4 text-muted-foreground" />
+                <MedalIcon className="h-4 w-4 text-muted-foreground" />
                 <span>{med.name}</span>
                 {med.generic_name && (
                   <span className="text-xs text-muted-foreground">
@@ -477,11 +529,24 @@ export function SmartMedicationSearch({
           }))
       : [];
 
+  // Handle manual typing in the input field
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setSearchTerm(value);
+
+      // Always update the form field when user types (even if empty)
+      if (onChange) {
+        onChange(value.trim(), undefined);
+      }
+    },
+    [onChange]
+  );
+
   return (
     <div className={cn("space-y-2", className)}>
       <Autocomplete
         value={searchTerm}
-        onValueChange={setSearchTerm}
+        onValueChange={handleInputChange}
         disabled={disabled}
       >
         <AutocompleteControl className="relative">
@@ -522,7 +587,7 @@ export function SmartMedicationSearch({
               )}
               {autocompleteOptions.map((option, index) => (
                 <AutocompleteItem
-                  key={option.value || `${option.label}-${index}`}
+                  key={option.key || option.value || `${option.label}-${index}`}
                   value={option.value}
                 >
                   {option.render}
@@ -536,7 +601,7 @@ export function SmartMedicationSearch({
                   </div>
                   {popularMedications.map((med, index) => (
                     <AutocompleteItem
-                      key={`popular-${index}-${med.value}`}
+                      key={med.key || `popular-${index}-${med.value}`}
                       value={med.value}
                     >
                       {med.render}
@@ -562,7 +627,7 @@ export function SmartMedicationSearch({
               </div>
               {popularMedications.map((med, index) => (
                 <AutocompleteItem
-                  key={`popular-${index}-${med.value}`}
+                  key={med.key || `popular-${index}-${med.value}`}
                   value={med.value}
                 >
                   {med.render}

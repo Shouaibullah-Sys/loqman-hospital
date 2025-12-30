@@ -29,7 +29,12 @@ export async function POST(request: NextRequest) {
       symptoms
     );
 
-    const completeAnalysis = { ...analysis, medications };
+    const completeAnalysis = {
+      ...analysis,
+      medications,
+      diagnosis: targetDiagnosis,
+      clinicalNotes: analysis.clinicalNotes || `تحلیل علائم: ${symptoms}`,
+    };
 
     return NextResponse.json({
       success: true,

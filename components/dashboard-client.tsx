@@ -7,7 +7,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import SmartTextForm from "./SmartTextForm";
 import PresetsTab from "./presets-tab";
 import ErrorAlert from "./ErrorAlert";
-import { EnhancedPrescriptionForm } from "./enhanced-prescription-form";
+import { EnhancedPrescriptionForm } from "./enhanced-prescription-form/enhanced-prescription-form";
 import { PrescriptionDetails } from "./prescription-details";
 import { PrescriptionAmount } from "./prescription-amount";
 import { Prescription } from "@/types/prescription";

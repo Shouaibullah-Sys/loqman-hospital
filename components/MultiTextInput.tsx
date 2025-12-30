@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 
 interface MultiTextInputProps {
-  label: string;
+  label: string | React.ReactNode;
   placeholder?: string;
   values: string[];
   onChange: (values: string[]) => void;
   className?: string;
+  inputClassName?: string;
   description?: string;
   required?: boolean;
 }
@@ -23,6 +24,7 @@ export function MultiTextInput({
   values,
   onChange,
   className = "",
+  inputClassName = "",
   description,
   required = false,
 }: MultiTextInputProps) {
@@ -86,7 +88,7 @@ export function MultiTextInput({
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={placeholder}
-          className="flex-1"
+          className={`flex-1 ${inputClassName}`}
         />
         <Button
           type="button"

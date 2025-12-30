@@ -37,7 +37,6 @@ export interface VoicePrescription {
   height?: string;
   bmi?: string;
   pulseRate?: string;
-  heartRate?: string;
   bloodPressure?: string;
   temperature?: string;
   respiratoryRate?: string;
@@ -58,6 +57,7 @@ export interface VoicePrescription {
   // Additional Fields
   chiefComplaint?: string;
   pastMedicalHistory?: string;
+  medicalTests?: string[];
   medicines: Medication[];
   doctorName: string;
   doctorLicenseNumber?: string;
@@ -255,7 +255,7 @@ export const defaultPDFConfig: PDFConfig = {
     orientation: "portrait",
     unit: "pt",
     format: "a4",
-    margins: { top: 40, bottom: 40, left: 40, right: 40 },
+    margins: { top: 40, bottom: 40, left: 20, right: 20 },
   },
 
   language: {
@@ -284,14 +284,14 @@ export const defaultPDFConfig: PDFConfig = {
   typography: {
     defaultFont: "vazirmatn",
     fontSizes: {
-      title: 14,
-      subtitle: 12,
-      heading: 10,
-      subheading: 9,
-      body: 8,
-      small: 7,
-      tiny: 6,
-      micro: 5,
+      title: 16, // Increased from 14
+      subtitle: 14, // Increased from 12
+      heading: 12, // Increased from 10
+      subheading: 11, // Increased from 9
+      body: 10, // Increased from 8
+      small: 9, // Increased from 7
+      tiny: 8, // Increased from 6
+      micro: 7, // Increased from 5
     },
     lineHeights: {
       tight: 1.1,
@@ -372,11 +372,11 @@ export const defaultPDFConfig: PDFConfig = {
     gridColumns: 3,
     cell: {
       width: 40, // Smaller cells
-      height: 18,
+      height: 25, // Increased height to accommodate larger fonts
       gap: 2,
       borderRadius: 2,
     },
-    include: ["pulse", "bp", "heart", "temp", "respiratory", "oxygen"],
+    include: ["pulse", "bp", "temp", "respiratory", "oxygen"],
     showUnits: true,
   },
 
@@ -392,7 +392,7 @@ export const defaultPDFConfig: PDFConfig = {
         "Instructions",
       ],
       columnWidths: [15, 90, 60, 60, 60, 70], // Adjusted widths
-      rowHeight: 18, // Smaller row height
+      rowHeight: 22, // Increased row height to accommodate larger fonts
       stripedRows: true,
       showRowNumbers: true,
       showAdditionalDetails: false, // Disabled for compactness
@@ -553,16 +553,13 @@ function drawFixedHeightSection(
     padding.bottom -
     config.typography.fontSizes.subheading * 1.2;
 
-  // Draw section background
+  // Draw section background only (border will be drawn separately for the entire left column)
   doc.setFillColor(...config.colors.sectionBg);
-  doc.setDrawColor(...config.colors.border);
-  doc.setLineWidth(0.3);
-
   if (config.clinicalHistory.boxStyle === "rounded") {
     // Use rect instead of roundedRect for compatibility
-    doc.rect(x, y, width, height, "FD");
+    doc.rect(x, y, width, height, "F");
   } else {
-    doc.rect(x, y, width, height, "FD");
+    doc.rect(x, y, width, height, "F");
   }
 
   // Draw left accent bar
@@ -597,12 +594,15 @@ function drawFixedHeightSection(
       typeof content === "object" &&
       content !== null &&
       !Array.isArray(content) &&
-      "medicalExams" in content
+      ("medicalExams" in content || "systemExaminations" in content)
     ) {
       // Estimate height for structured content
       let estimatedLines = 0;
       if ((content as any).medicalExams?.length) {
         estimatedLines += (content as any).medicalExams.length;
+      }
+      if ((content as any).systemExaminations?.length) {
+        estimatedLines += (content as any).systemExaminations.length;
       }
       if ((content as any).examNotes) {
         estimatedLines += 3; // Title + exam notes content
@@ -633,7 +633,7 @@ function drawFixedHeightSection(
     typeof content === "object" &&
     content !== null &&
     !Array.isArray(content) &&
-    "medicalExams" in content
+    ("medicalExams" in content || "systemExaminations" in content)
   ) {
     // Special handling for Lab Exams structured content
     let currentY = contentY;
@@ -704,6 +704,51 @@ function drawFixedHeightSection(
         currentY += lineHeight;
       }
     }
+
+    // Handle system examinations if present
+    if ((content as any).systemExaminations?.length) {
+      // Add some spacing before system examinations
+      currentY += 5;
+
+      // Draw system examinations as examination findings
+      for (let i = 0; i < (content as any).systemExaminations.length; i++) {
+        const exam = (content as any).systemExaminations[i];
+        if (currentY + lineHeight > y + height - padding.bottom) {
+          // Add "..." if content overflows
+          doc.setFont(config.typography.defaultFont, "italic");
+          doc.text(
+            "...",
+            x + width - padding.right - 10,
+            y + height - padding.bottom - 2
+          );
+          break;
+        }
+
+        // Draw exam label and value
+        doc.setFont(config.typography.defaultFont, "bold");
+        doc.setTextColor(...config.colors.primary);
+        doc.text(`${exam.label}:`, x + padding.left, currentY);
+
+        const labelWidth = doc.getTextWidth(`${exam.label}: `);
+        doc.setFont(config.typography.defaultFont, "normal");
+        doc.setTextColor(...config.colors.textDark);
+
+        const maxTextWidth = contentWidth - labelWidth;
+        const lines = doc.splitTextToSize(exam.value, maxTextWidth);
+
+        for (let j = 0; j < lines.length; j++) {
+          if (currentY + lineHeight > y + height - padding.bottom) break;
+          if (j === 0) {
+            doc.text(lines[j], x + padding.left + labelWidth, currentY);
+          } else {
+            currentY += lineHeight;
+            doc.text(lines[j], x + padding.left, currentY);
+          }
+        }
+
+        currentY += lineHeight + 2;
+      }
+    }
   } else if (Array.isArray(content) && content.length > 0) {
     // Draw as numbered list
     let currentY = contentY;
@@ -763,6 +808,45 @@ function drawFixedHeightSection(
 }
 
 /**
+ * Collect system examinations from prescription data
+ */
+function collectSystemExaminations(
+  prescription: VoicePrescription
+): Array<{ label: string; value: string }> {
+  const systemExaminations: Array<{ label: string; value: string }> = [];
+
+  const examinationFields = [
+    { key: "cnsExamination", label: "CNS Examination" },
+    { key: "cardiovascularExamination", label: "Cardiovascular Examination" },
+    { key: "respiratoryExamination", label: "Respiratory Examination" },
+    {
+      key: "gastrointestinalExamination",
+      label: "Gastrointestinal Examination",
+    },
+    { key: "musculoskeletalExamination", label: "Musculoskeletal Examination" },
+    { key: "genitourinaryExamination", label: "Genitourinary Examination" },
+    { key: "dermatologicalExamination", label: "Dermatological Examination" },
+    { key: "entExamination", label: "ENT Examination" },
+    {
+      key: "ophthalmologicalExamination",
+      label: "Ophthalmological Examination",
+    },
+  ];
+
+  for (const field of examinationFields) {
+    const value = (prescription as any)[field.key];
+    if (value && typeof value === "string" && value.trim() !== "") {
+      systemExaminations.push({
+        label: field.label,
+        value: value.trim(),
+      });
+    }
+  }
+
+  return systemExaminations;
+}
+
+/**
  * Calculate and guarantee all left sections fit on one page
  */
 function calculateLeftColumnLayout(
@@ -795,7 +879,7 @@ function calculateLeftColumnLayout(
     config.clinicalHistory.sections.medicalHistory
   ) {
     sections.push({
-      title: "Medical History",
+      title: "History of the Chief Complain",
       content: prescription.pastMedicalHistory,
       height: config.layout.leftSectionHeights.medicalHistory,
     });
@@ -816,6 +900,17 @@ function calculateLeftColumnLayout(
     totalHeight +=
       config.layout.leftSectionHeights.pastMedicalHistory +
       config.layout.sectionSpacing;
+  }
+
+  // Collect system examinations if they exist
+  const systemExams = collectSystemExaminations(prescription);
+  if (systemExams.length > 0) {
+    sections.push({
+      title: "System Examinations",
+      content: { systemExaminations: systemExams },
+      height: 120, // Fixed height for system examinations
+    });
+    totalHeight += 120 + config.layout.sectionSpacing;
   }
 
   if (
@@ -847,32 +942,7 @@ function calculateLeftColumnLayout(
   // Note: Diagnosis section would be added here if prescription data included diagnosis
   // For now, it's available in config but not populated from prescription data
 
-  if (
-    prescription.allergies?.length &&
-    config.clinicalHistory.sections.allergies
-  ) {
-    sections.push({
-      title: "Diagnosis",
-      content: prescription.allergies,
-      height: config.layout.leftSectionHeights.allergies,
-    });
-    totalHeight +=
-      config.layout.leftSectionHeights.allergies + config.layout.sectionSpacing;
-  }
-
-  if (
-    prescription.familyHistory &&
-    config.clinicalHistory.sections.familyHistory
-  ) {
-    sections.push({
-      title: "Family History",
-      content: prescription.familyHistory,
-      height: config.layout.leftSectionHeights.familyHistory,
-    });
-    totalHeight +=
-      config.layout.leftSectionHeights.familyHistory +
-      config.layout.sectionSpacing;
-  }
+  // Note: Diagnosis/Allergies section moved to right column
 
   if (
     prescription.socialHistory &&
@@ -968,7 +1038,7 @@ export async function generatePrescriptionPDF(
     const rowHeight = 12;
     let rowY = y;
 
-    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setFontSize(config.typography.fontSizes.subheading);
 
     for (let i = 0; i < patientInfoRows.length; i++) {
       const info = patientInfoRows[i];
@@ -1086,9 +1156,9 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // SYSTEM EXAMINATIONS
-  if (hasSystemExaminations(prescription)) {
-    yRight = addCompactSystemExaminations(
+  // DIAGNOSIS SECTION (Allergies)
+  if (prescription.allergies?.length) {
+    yRight = addDiagnosisSection(
       doc,
       yRight,
       rightColumnX,
@@ -1150,7 +1220,7 @@ function createPatientInfoRows(
         : "N/A",
     },
     gender: {
-      label: "Gender",
+      label: "Sex",
       value: prescription.patientGender || "N/A",
     },
     date: {
@@ -1211,27 +1281,21 @@ function addCompactVitalSigns(
   const vitalSigns = [
     {
       key: "pulse",
-      label: "Pulse",
+      label: "PR",
       value: prescription.pulseRate,
       unit: "bpm",
     },
-    { key: "bp", label: "BP", value: prescription.bloodPressure, unit: "" },
-    {
-      key: "heart",
-      label: "Heart",
-      value: prescription.heartRate,
-      unit: "bpm",
-    },
+    { key: "bp", label: "BP", value: prescription.bloodPressure, unit: "bp" },
     { key: "temp", label: "Temp", value: prescription.temperature, unit: "°C" },
     {
       key: "respiratory",
-      label: "Resp",
+      label: "RR",
       value: prescription.respiratoryRate,
       unit: "/min",
     },
     {
       key: "oxygen",
-      label: "O₂ Sat",
+      label: "SPO2",
       value: prescription.oxygenSaturation,
       unit: "%",
     },
@@ -1285,8 +1349,8 @@ function addCompactVitalSigns(
         ? `${vital.value} ${vital.unit}`.trim()
         : vital.value!;
 
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.body);
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.setFontSize(config.typography.fontSizes.body); // Increased font size for vital sign values to make them more prominent
     doc.setTextColor(...config.colors.textDark);
 
     const textWidth = doc.getTextWidth(valueText);
@@ -1296,90 +1360,6 @@ function addCompactVitalSigns(
 
   y += rows * cellHeight + 10;
   return y;
-}
-
-function addCompactSystemExaminations(
-  doc: jsPDF,
-  y: number,
-  x: number,
-  width: number,
-  prescription: VoicePrescription,
-  config: PDFConfig
-): number {
-  const examinations = [
-    { label: "CNS", value: prescription.cnsExamination },
-    { label: "Cardio", value: prescription.cardiovascularExamination },
-    { label: "Resp", value: prescription.respiratoryExamination },
-    { label: "GI", value: prescription.gastrointestinalExamination },
-    { label: "MSK", value: prescription.musculoskeletalExamination },
-    { label: "GU", value: prescription.genitourinaryExamination },
-    { label: "Derm", value: prescription.dermatologicalExamination },
-    { label: "ENT", value: prescription.entExamination },
-    { label: "Ophth", value: prescription.ophthalmologicalExamination },
-  ];
-
-  const validExams = examinations.filter(
-    (exam) => exam.value && exam.value.trim()
-  );
-
-  if (validExams.length === 0) {
-    return y;
-  }
-
-  // Section header
-  doc.setFillColor(...config.colors.accent);
-  doc.rect(x, y, 4, 16, "F");
-
-  doc.setFont(config.typography.defaultFont, "bold");
-  doc.setFontSize(config.typography.fontSizes.heading);
-  doc.setTextColor(...config.colors.primary);
-  doc.text("SYSTEM EXAMS", x + 10, y + 11);
-
-  y += 22;
-
-  // Draw exams in a compact format
-  const maxWidth = width - 20;
-  const lineHeight = 9;
-  let currentY = y;
-
-  doc.setFont(config.typography.defaultFont, "normal");
-  doc.setFontSize(config.typography.fontSizes.tiny);
-  doc.setTextColor(...config.colors.textDark);
-
-  for (const exam of validExams) {
-    if (
-      currentY + lineHeight >
-      doc.internal.pageSize.getHeight() - config.page.margins.bottom - 50
-    ) {
-      break;
-    }
-
-    // Exam label
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setTextColor(...config.colors.primary);
-    doc.text(`${exam.label}:`, x + 10, currentY);
-
-    const labelWidth = doc.getTextWidth(`${exam.label}: `);
-
-    // Exam value (truncated if too long)
-    doc.setFont(config.typography.defaultFont, "normal");
-    doc.setTextColor(...config.colors.textDark);
-    const maxTextWidth = maxWidth - labelWidth - 10;
-    const lines = doc.splitTextToSize(exam.value!, maxTextWidth);
-
-    for (let i = 0; i < lines.length; i++) {
-      if (i === 0) {
-        doc.text(lines[i], x + 10 + labelWidth, currentY);
-      } else {
-        currentY += lineHeight;
-        doc.text(lines[i], x + 10, currentY);
-      }
-    }
-
-    currentY += lineHeight + 2;
-  }
-
-  return currentY + 5;
 }
 
 function addCompactMedicationsTable(
@@ -1512,7 +1492,7 @@ function addCompactMedicationsTable(
 
     xPos = startX;
     doc.setFont(config.typography.defaultFont, "normal");
-    doc.setFontSize(config.typography.fontSizes.tiny);
+    doc.setFontSize(config.typography.fontSizes.body); // Increased font size for medication data
     doc.setTextColor(...config.colors.textDark);
 
     for (let j = 0; j < rowData.length; j++) {
@@ -1538,6 +1518,59 @@ function addCompactMedicationsTable(
 
   return y + 10;
 }
+/**
+ * Add Diagnosis section to right column (shows allergies)
+ */
+function addDiagnosisSection(
+  doc: jsPDF,
+  y: number,
+  x: number,
+  width: number,
+  prescription: VoicePrescription,
+  config: PDFConfig
+): number {
+  if (!prescription.allergies?.length) {
+    return y; // No content, return same y position
+  }
+
+  // Section header
+  doc.setFillColor(...config.colors.accent);
+  doc.rect(x, y, 4, 16, "F");
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.heading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("DIAGNOSIS", x + 10, y + 11);
+
+  y += 22;
+
+  // Diagnosis content (allergies as numbered list)
+  const allergies = prescription.allergies;
+  const maxWidth = width - 15;
+  let currentY = y;
+
+  doc.setFont(config.typography.defaultFont, "normal");
+  doc.setFontSize(config.typography.fontSizes.body);
+  doc.setTextColor(...config.colors.textDark);
+
+  for (let i = 0; i < allergies.length; i++) {
+    const allergy = allergies[i];
+    const itemText = `${i + 1}. ${allergy}`;
+
+    // Split text if too long
+    const lines = doc.splitTextToSize(itemText, maxWidth);
+
+    for (let j = 0; j < lines.length; j++) {
+      doc.text(lines[j], x + 5, currentY);
+      currentY +=
+        config.typography.fontSizes.body * config.typography.lineHeights.normal;
+    }
+
+    currentY += 2; // Small gap between items
+  }
+
+  return currentY + 8; // Add some spacing after the section
+}
 
 function addCompactSignature(
   doc: jsPDF,
@@ -1549,8 +1582,8 @@ function addCompactSignature(
   const pageHeight = doc.internal.pageSize.getHeight();
   const footerHeight = config.footer.show ? config.footer.height : 0;
 
-  // Fixed position at bottom of page (above footer)
-  const signatureY = pageHeight - footerHeight - 60;
+  // Fixed position independent of footer - much higher positioning
+  const signatureY = pageHeight - 120;
   const rightSectionX = pageWidth - config.page.margins.right - 200;
 
   // Signature line with green color
@@ -1597,8 +1630,31 @@ function addFooter(
 ) {
   const footerY = pageHeight - config.footer.height;
 
-  // Digital note with green color
-  if (config.footer.showDigitalNote) {
+  // Show Follow Up information instead of digital note
+  if (prescription.familyHistory && prescription.familyHistory.trim()) {
+    doc.setFontSize(config.typography.fontSizes.small);
+    doc.setTextColor(...config.colors.primary);
+
+    // Draw "Follow Up:" label
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.text("Follow Up:", pageWidth / 2, footerY - 27, { align: "center" });
+
+    // Draw follow up content
+    doc.setFont(config.typography.defaultFont, "normal");
+    const followUpLines = doc.splitTextToSize(
+      prescription.familyHistory,
+      pageWidth - 80 // Leave some margin on sides
+    );
+
+    let currentY = footerY - 20;
+    for (let i = 0; i < followUpLines.length; i++) {
+      doc.text(followUpLines[i], pageWidth / 2, currentY, { align: "center" });
+      currentY +=
+        config.typography.fontSizes.small *
+        config.typography.lineHeights.normal;
+    }
+  } else if (config.footer.showDigitalNote) {
+    // Fallback to digital note if no follow up content
     doc.setFontSize(config.typography.fontSizes.micro);
     doc.setTextColor(...config.colors.textDark);
     doc.text("Digitally generated prescription", pageWidth / 2, footerY + 10, {
@@ -1620,7 +1676,6 @@ function hasVitalSigns(prescription: VoicePrescription): boolean {
   return [
     prescription.pulseRate,
     prescription.bloodPressure,
-    prescription.heartRate,
     prescription.temperature,
     prescription.respiratoryRate,
     prescription.oxygenSaturation,

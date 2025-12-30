@@ -1,9 +1,11 @@
 // services/huggingfaceService.ts
 import { HfInference } from "@huggingface/inference";
 
-const hf = process.env.HUGGING_FACE_API_KEY
-  ? new HfInference(process.env.HUGGING_FACE_API_KEY)
-  : null;
+// Only initialize HuggingFace if API key is properly configured
+const hf =
+  process.env.HUGGING_FACE_API_KEY && process.env.HUGGING_FACE_API_KEY.trim()
+    ? new HfInference(process.env.HUGGING_FACE_API_KEY)
+    : null;
 
 // Updated medical models with better fallbacks
 const MEDICAL_MODELS = {
@@ -19,7 +21,7 @@ export class MedicalAIService {
   ): Promise<any> {
     // Check if Hugging Face is available
     if (!hf) {
-      console.warn("Hugging Face API not configured, using local analysis");
+      console.log("Hugging Face API not configured, using local analysis");
       return this.generateLocalAnalysis(symptoms, patientHistory);
     }
 
@@ -27,11 +29,12 @@ export class MedicalAIService {
       const prompt = this.buildMedicalPrompt(symptoms, patientHistory);
 
       // Try models in order
-      for (const model of Object.values(MEDICAL_MODELS)) {
+      for (const [modelName, model] of Object.entries(MEDICAL_MODELS)) {
         try {
+          console.log(`Trying model: ${model}`);
           const response = await this.tryModel(model, prompt);
           if (response.success && response.text) {
-            // Added null check for response.text
+            console.log(`Model ${model} succeeded`);
             return this.parseMedicalResponse(response.text, model);
           }
         } catch (error) {
@@ -41,6 +44,7 @@ export class MedicalAIService {
       }
 
       // All models failed
+      console.log("All AI models failed, using local analysis");
       return this.generateLocalAnalysis(symptoms, patientHistory);
     } catch (error) {
       console.error("All AI models failed:", error);
@@ -74,6 +78,7 @@ export class MedicalAIService {
         model,
       };
     } catch (error: any) {
+      console.error(`Model ${model} error:`, error.message);
       return {
         success: false,
         error: error.message,
@@ -137,23 +142,69 @@ Response in Persian:`;
     symptoms: string,
     patientHistory: string
   ) {
+    // Enhanced local analysis with better diagnosis matching
+    const symptomLower = symptoms.toLowerCase();
+    let diagnosis = "نیازمند معاینه حضوری";
+    let recommendations = [
+      "Complete physical examination",
+      "Monitor vital signs",
+      "Paraclinical tests if needed",
+    ];
+    let warnings = [
+      "This is a basic analysis and does not replace medical examination",
+      "Seek immediate medical attention if symptoms worsen",
+    ];
+
+    // Pattern matching for common conditions
+    if (symptomLower.includes("سرفه") || symptomLower.includes("cough")) {
+      diagnosis = "عفونت تنفسی فوقانی";
+      recommendations = [
+        "بررسی ریه و مجاری تنفسی",
+        "آزمایش خون و عکس قفسه سینه در صورت نیاز",
+        "استراحت و مصرف مایعات فراوان",
+      ];
+    } else if (symptomLower.includes("تب") || symptomLower.includes("fever")) {
+      diagnosis = "سندرم تب‌دار";
+      recommendations = [
+        "کنترل دمای بدن",
+        "بررسی علل عفونی",
+        "آزمایش‌های اولیه در صورت نیاز",
+      ];
+    } else if (
+      symptomLower.includes("سردرد") ||
+      symptomLower.includes("headache")
+    ) {
+      diagnosis = "سردرد تنشی";
+      recommendations = [
+        "بررسی علل ثانویه سردرد",
+        "کنترل فشار خون",
+        "در صورت تداوم، سی‌تی‌اسکن مغز",
+      ];
+    } else if (
+      symptomLower.includes("درد معده") ||
+      symptomLower.includes("stomach pain")
+    ) {
+      diagnosis = "گاستریت یا سوءهاضمه";
+      recommendations = [
+        "معاینه شکم",
+        "آزمایش هلیکوباکتر در صورت نیاز",
+        "رژیم غذایی مناسب",
+      ];
+    }
+
     return {
-      diagnosis: "نیازمند معاینه حضوری",
+      diagnosis,
       confidence: "low",
       clinicalNotes: `علائم گزارش شده: ${symptoms}. ${
         patientHistory ? `تاریخچه: ${patientHistory}` : ""
       }`,
-      differentialDiagnosis: "عفونت ویروسی، باکتریال، یا سایر موارد",
+      differentialDiagnosis:
+        diagnosis === "نیازمند معاینه حضوری"
+          ? "نیازمند ارزیابی بالینی دقیق"
+          : "تشخیص افتراقی نیازمند بررسی بیشتر",
       medications: [],
-      recommendations: [
-        "Complete physical examination",
-        "Monitor vital signs",
-        "Paraclinical tests if needed",
-      ],
-      warnings: [
-        "This is a basic analysis and does not replace medical examination",
-        "Seek immediate medical attention if symptoms worsen",
-      ],
+      recommendations,
+      warnings,
       aiModelUsed: "local_fallback",
     };
   }
