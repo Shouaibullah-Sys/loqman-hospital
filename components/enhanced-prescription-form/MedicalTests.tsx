@@ -363,7 +363,7 @@ export function MedicalTests({
                   </div>
                   <div className="text-left flex-1">
                     <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
-                      Test Search & Selection
+                      Lab Tests & Other Investigation
                     </span>
                     <div className="text-xs text-muted-foreground mt-0.5">
                       Search and select diagnostic tests and imaging
@@ -387,20 +387,12 @@ export function MedicalTests({
                       value={selectedTest}
                       onValueChange={handleTestSelect}
                       onCustomValueAdd={handleCustomTestAdd}
-                      placeholder={`Search for ${
-                        searchType === "all"
-                          ? "laboratory tests, imaging procedures, or special tests"
-                          : searchType === "lab"
-                          ? "laboratory tests"
-                          : searchType === "imaging"
-                          ? "imaging procedures"
-                          : "special tests"
-                      } (e.g., CBC, MRI, Endoscopy)...`}
+                      placeholder="Search for lab tests, imaging, procedures, etc."
                       limit={20}
                       filterByType={getFilterType()}
                       showPreparationInfo={true}
                       showFastingIndicator={true}
-                      className="w-full"
+                      className="w-full focus:ring-purple-500 focus:border-purple-500" // Add custom focus styles
                       allowCustomEntries={true}
                     />
 
@@ -506,77 +498,6 @@ export function MedicalTests({
               </AccordionContent>
             </AccordionItem>
           </Accordion>
-
-          {/* Summary Section */}
-          {selectedTestObjects.length > 0 && (
-            <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-purple-100 dark:border-purple-800">
-              <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
-                Test Order Summary
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Selected Tests:
-                  </div>
-                  <div className="space-y-1">
-                    {selectedTestObjects.slice(0, 5).map((test, index) => (
-                      <div
-                        key={test.id || index}
-                        className="flex items-center gap-1.5"
-                      >
-                        {getTypeIcon(test.type)}
-                        <span className="text-xs truncate">{test.name}</span>
-                        {test.category.includes("Custom Test") && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs h-3 px-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300"
-                          >
-                            C
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                    {selectedTestObjects.length > 5 && (
-                      <div className="text-xs text-muted-foreground">
-                        + {selectedTestObjects.length - 5} more tests
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Estimated Timeline & Requirements:
-                  </div>
-                  <div className="space-y-0.5">
-                    {testStats.fastingRequired > 0 && (
-                      <div className="text-xs">
-                        <span className="font-medium">Fasting required:</span>{" "}
-                        {testStats.fastingRequired} test(s)
-                      </div>
-                    )}
-                    {testStats.customTests > 0 && (
-                      <div className="text-xs text-amber-600 dark:text-amber-400">
-                        <span className="font-medium">Custom tests:</span>{" "}
-                        {testStats.customTests} (manual review needed)
-                      </div>
-                    )}
-                    <div className="text-xs">
-                      <span className="font-medium">Lab results:</span> 24-48
-                      hours
-                    </div>
-                    <div className="text-xs">
-                      <span className="font-medium">Imaging results:</span> 2-3
-                      days
-                    </div>
-                    <div className="text-xs">
-                      <span className="font-medium">Special tests:</span> 3-7
-                      days
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

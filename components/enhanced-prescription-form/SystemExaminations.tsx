@@ -417,7 +417,7 @@ export function SystemExaminations({
                 </div>
                 <div className="text-left flex-1">
                   <span className="text-base font-bold text-foreground">
-                    CNS & Neurological
+                    Inspection
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     Consciousness, motor, sensory, and reflexes
@@ -444,7 +444,7 @@ export function SystemExaminations({
                     <div className="p-1.5 bg-gradient-to-br from-purple-500 to-purple-400 rounded-lg">
                       <Brain className="h-4 w-4 text-purple-50" />
                     </div>
-                    Neurological Examination
+                    Inspection Examination
                     {validationErrors.cnsExamination && (
                       <div className="ml-2 flex items-center gap-1 text-xs font-normal px-2 py-1 bg-destructive/10 text-destructive rounded-full">
                         <AlertCircle className="h-3 w-3" />
@@ -557,7 +557,7 @@ export function SystemExaminations({
                 </div>
                 <div className="text-left flex-1">
                   <span className="text-base font-bold text-foreground">
-                    Cardiovascular System
+                    Palpation
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     Heart sounds, pulses, and circulation
@@ -704,7 +704,7 @@ export function SystemExaminations({
                 </div>
                 <div className="text-left flex-1">
                   <span className="text-base font-bold text-foreground">
-                    Respiratory System
+                    Rescussion
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     Breathing patterns, sounds, and oxygen status
@@ -848,7 +848,7 @@ export function SystemExaminations({
                 </div>
                 <div className="text-left flex-1">
                   <span className="text-base font-bold text-foreground">
-                    Gastrointestinal System
+                    Auscultation
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     Abdominal examination and digestive system

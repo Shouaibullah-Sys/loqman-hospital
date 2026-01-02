@@ -20,16 +20,18 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
   return (
     <div
       id="follow-up"
-      className="flex flex-col sm:flex-row border-b dark:border-border/30 hover:bg-muted/20 transition-colors"
+      className="flex flex-col sm:flex-row border-b border-border/30 hover:bg-muted/20 transition-colors"
     >
       {/* Left Sidebar */}
-      <div className="w-full sm:w-1/4 p-3 sm:p-4 border-b sm:border-b-0 sm:border-r dark:border-border/30 bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-gray-900">
+      <div className="w-full sm:w-1/4 p-3 sm:p-4 border-b sm:border-b-0 sm:border-r border-border/30 bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-gray-900">
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900 rounded-lg">
             <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-300" />
           </div>
           <div>
-            <div className="font-semibold text-sm sm:text-base">Follow Up</div>
+            <div className="font-semibold text-sm sm:text-base text-foreground">
+              Follow Up
+            </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               Treatment Monitoring & Review
             </div>
@@ -39,11 +41,11 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
         {/* Follow Up Quick Stats */}
         <div className="mt-3 space-y-2">
           <div className="p-2 bg-white dark:bg-gray-800 rounded-md border border-green-100 dark:border-green-800">
-            <div className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-1">
+            <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3 text-green-500" />
               Follow-up Status
             </div>
-            <div className="text-sm font-medium mt-1">
+            <div className="text-sm font-medium mt-1 text-foreground">
               {prescription.followUp ? "Instructions set" : "Not specified"}
             </div>
           </div>
@@ -64,7 +66,7 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
                   <Users className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-300" />
                 </div>
                 <div className="text-left">
-                  <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
+                  <span className="text-sm sm:text-base font-semibold text-foreground">
                     Follow Up Instructions
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
@@ -78,16 +80,16 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
               <div>
                 <Label
                   htmlFor="followUp"
-                  className="text-xs sm:text-sm font-medium flex items-center gap-1 mb-2"
+                  className="text-xs sm:text-sm font-medium flex items-center gap-1 mb-2 text-foreground"
                 >
-                  <Users className="h-3.5 w-3.5 text-green-600" />
+                  <Users className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                   Follow-up Instructions *
                 </Label>
                 <Textarea
                   id="followUp"
                   value={prescription.followUp || ""}
                   onChange={(e) => onUpdateField("followUp", e.target.value)}
-                  className="mt-1.5 text-xs sm:text-sm min-h-[180px] bg-gradient-to-b from-green-50 to-white dark:from-gray-800 dark:to-gray-900 border-green-100 dark:border-green-800"
+                  className="mt-1.5 text-xs sm:text-sm min-h-[180px] bg-background border-input text-foreground"
                   placeholder={`• Return for re-evaluation in [timeframe, e.g., 2 weeks, 1 month]
 • Schedule follow-up appointment on [date if known]
 • Monitor specific symptoms (fever, pain, swelling, etc.)
@@ -114,8 +116,8 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
 
               {/* Example Templates */}
               <div className="mt-4">
-                <Label className="text-xs sm:text-sm font-medium flex items-center gap-1 mb-2">
-                  <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                <Label className="text-xs sm:text-sm font-medium flex items-center gap-1 mb-2 text-foreground">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                   Quick Templates
                 </Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -127,7 +129,7 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
                         "Return for follow-up in 2 weeks to assess treatment response. Return immediately if symptoms worsen or fever develops."
                       )
                     }
-                    className="text-xs p-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors text-left"
+                    className="text-xs p-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors text-left text-foreground"
                   >
                     Standard 2-week follow-up
                   </button>
@@ -139,7 +141,7 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
                         "Return in 1 month for routine check-up. Continue medications as prescribed. Monitor blood pressure twice weekly and keep a record."
                       )
                     }
-                    className="text-xs p-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors text-left"
+                    className="text-xs p-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors text-left text-foreground"
                   >
                     Monthly chronic disease follow-up
                   </button>
@@ -151,7 +153,7 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
                         "Return after completing antibiotic course (7 days). Return immediately if no improvement in 3 days or if symptoms worsen."
                       )
                     }
-                    className="text-xs p-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors text-left"
+                    className="text-xs p-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors text-left text-foreground"
                   >
                     Post-treatment follow-up
                   </button>
@@ -163,7 +165,7 @@ export function FollowUp({ prescription, onUpdateField }: FollowUpProps) {
                         "Return for wound check in 1 week. Keep wound clean and dry. Return immediately if signs of infection develop (redness, swelling, pus, fever)."
                       )
                     }
-                    className="text-xs p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors text-left"
+                    className="text-xs p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors text-left text-foreground"
                   >
                     Wound check follow-up
                   </button>
