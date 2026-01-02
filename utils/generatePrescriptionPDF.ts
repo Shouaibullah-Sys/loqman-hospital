@@ -1793,7 +1793,7 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // LAB EXAMS SECTION - Added before PRESCRIPTIONS with gradient 3-column layout
+  // LAB EXAMS SECTION
   if (prescription.medicalExams?.length || prescription.examNotes) {
     yRight = addLabExamsSection(
       doc,
@@ -1805,7 +1805,7 @@ export async function generatePrescriptionPDF(
     );
   }
 
-  // MEDICATIONS - Always show on first page, continue to second if needed
+  // MEDICATIONS
   if (config.medications.show) {
     yRight = addCompactMedicationsTable(
       doc,
@@ -1818,7 +1818,8 @@ export async function generatePrescriptionPDF(
   }
 
   // ==================== ADD FOLLOW UP SECTION ====================
-  // Add Follow Up section before signature
+  // THIS IS THE CRITICAL LINE THAT'S MISSING!
+  // Add Follow Up section after medications
   if (prescription.followUp && prescription.followUp.trim()) {
     yRight = addFollowUpSection(
       doc,
@@ -2386,7 +2387,7 @@ function addFooter(
   if (config.footer.showDigitalNote) {
     doc.setFontSize(config.typography.fontSizes.micro);
     doc.setTextColor(...config.colors.textDark);
-    doc.text("Digitally generated prescription", pageWidth / 2, footerY + 10, {
+    doc.text("در ختم دوا دوباره مراجعه گردد", pageWidth / 2, footerY - 40, {
       align: "center",
     });
   }
