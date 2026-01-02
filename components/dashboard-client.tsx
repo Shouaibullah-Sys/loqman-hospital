@@ -676,7 +676,6 @@ export default function DashboardClient({
                         </Button>
                       </div>
                     </div>
-
                     {prescriptionsLoading ? (
                       <Card>
                         <CardContent className="flex justify-center items-center py-12">

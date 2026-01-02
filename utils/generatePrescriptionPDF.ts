@@ -562,6 +562,83 @@ function drawBilingualTextVertical(
 // ==================== HELPER FUNCTIONS ====================
 
 /**
+ * Parse chief complaint JSON content and format it for display
+ */
+function parseChiefComplaintContent(chiefComplaint: string): string {
+  if (!chiefComplaint || typeof chiefComplaint !== "string") {
+    return "No chief complaint recorded";
+  }
+
+  try {
+    // Try to parse as JSON array first
+    const parsed = JSON.parse(chiefComplaint);
+
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Format each complaint as a numbered list with details
+      return parsed
+        .map((complaint: any, index: number) => {
+          const number = index + 1;
+          const text = complaint.text || "No description";
+          const symptoms = Array.isArray(complaint.symptoms)
+            ? complaint.symptoms
+            : [];
+          const duration = complaint.duration || "";
+          const severity = complaint.severity || "";
+
+          let complaintText = `${number}. ${text}`;
+
+          // Add severity if available and not "Not specified"
+          if (severity && severity !== "Not specified") {
+            complaintText += ` (${severity})`;
+          }
+
+          // Add duration if available
+          if (duration) {
+            complaintText += ` - Duration: ${duration}`;
+          }
+
+          // Add symptoms if available
+          if (symptoms.length > 0) {
+            complaintText += ` - Symptoms: ${symptoms.join(", ")}`;
+          }
+
+          return complaintText;
+        })
+        .join("\n");
+    } else if (typeof parsed === "object" && parsed !== null) {
+      // Handle single complaint object
+      const text = parsed.text || "No description";
+      const symptoms = Array.isArray(parsed.symptoms) ? parsed.symptoms : [];
+      const duration = parsed.duration || "";
+      const severity = parsed.severity || "";
+
+      let complaintText = text;
+
+      if (severity && severity !== "Not specified") {
+        complaintText += ` (${severity})`;
+      }
+
+      if (duration) {
+        complaintText += ` - Duration: ${duration}`;
+      }
+
+      if (symptoms.length > 0) {
+        complaintText += ` - Symptoms: ${symptoms.join(", ")}`;
+      }
+
+      return complaintText;
+    } else {
+      // If parsed but not expected format, return as string
+      return parsed.toString();
+    }
+  } catch (error) {
+    // If not valid JSON, treat as plain text
+    console.warn("Chief complaint is not valid JSON:", error);
+    return chiefComplaint;
+  }
+}
+
+/**
  * Get the appropriate language value from a bilingual field
  */
 function getBilingualValue(
@@ -973,7 +1050,33 @@ function drawFixedHeightSection(
         break;
       }
 
-      doc.text(lines[i], x + padding.left, currentY);
+      // Special formatting for chief complaint content
+      if (title === "Chief Complaint" && lines[i].match(/^\d+\./)) {
+        // Make complaint numbers bold
+        const numberMatch = lines[i].match(/^(\d+\.)\s*(.*)$/);
+        if (numberMatch) {
+          const [, number, restText] = numberMatch;
+
+          // Draw number in bold and colored
+          doc.setFont(config.typography.defaultFont, "bold");
+          doc.setTextColor(...config.colors.primary);
+          doc.text(number, x + padding.left, currentY);
+
+          // Draw rest of text in normal font
+          doc.setFont(config.typography.defaultFont, "normal");
+          doc.setTextColor(...config.colors.textDark);
+          doc.text(
+            restText,
+            x + padding.left + doc.getTextWidth(number) + 2,
+            currentY
+          );
+        } else {
+          doc.text(lines[i], x + padding.left, currentY);
+        }
+      } else {
+        doc.text(lines[i], x + padding.left, currentY);
+      }
+
       currentY += lineHeight;
     }
   } else {
@@ -1041,9 +1144,13 @@ function calculateLeftColumnLayout(
     prescription.chiefComplaint &&
     config.clinicalHistory.sections.chiefComplaint
   ) {
+    // Parse chief complaint JSON to extract formatted content
+    const chiefComplaintContent = parseChiefComplaintContent(
+      prescription.chiefComplaint
+    );
     sections.push({
       title: "Chief Complaint",
-      content: prescription.chiefComplaint,
+      content: chiefComplaintContent,
       height: config.layout.leftSectionHeights.chiefComplaint,
     });
     totalHeight +=
@@ -1137,6 +1244,404 @@ function formatVitalValue(value?: string): string {
   return value.trim();
 }
 
+/**
+ * Enhanced Patient Information Section with All Calculations
+ */
+/**
+ * Enhanced Patient Information Section - Matches PatientInformation.tsx design
+ */
+/**
+ * Enhanced Patient Information Section - 4 columns, no borders, like PatientInformation.tsx
+ */
+function addEnhancedPatientInformation(
+  doc: jsPDF,
+  y: number,
+  x: number,
+  width: number,
+  prescription: VoicePrescription,
+  config: PDFConfig
+): number {
+  const columnWidth = width;
+  const contentX = x;
+  let currentY = y;
+
+  // ==================== 4-COLUMN LAYOUT ====================
+  const colCount = 4;
+  const colWidth = (columnWidth - 20) / colCount;
+  const colGap = 5;
+  const startX = contentX + 5;
+
+  // Calculate all metrics
+  const weight = prescription.weight ? `${prescription.weight} kg` : "N/A";
+  const height = prescription.height ? `${prescription.height} cm` : "N/A";
+  const bmi = prescription.bmi || "N/A";
+
+  // Calculate additional metrics
+  const waist = prescription.waistCircumference
+    ? `${prescription.waistCircumference} cm`
+    : "N/A";
+  const hip = prescription.hipCircumference
+    ? `${prescription.hipCircumference} cm`
+    : "N/A";
+  const idealWeight =
+    prescription.idealBodyWeight || calculateIdealWeightFromData(prescription);
+  const bmr =
+    prescription.basalMetabolicRate || calculateBMRFromData(prescription);
+  const bodyFat =
+    prescription.bodyFatPercentage || calculateBodyFatFromData(prescription);
+  const water =
+    prescription.waterRequirement || calculateWaterFromData(prescription);
+  const leanMass = prescription.leanBodyMass || "N/A";
+  const adjustedWeight = prescription.adjustedBodyWeight || "N/A";
+  const tdee = prescription.totalDailyEnergyExpenditure || "N/A";
+  const bsa = prescription.bodySurfaceArea || "N/A";
+
+  // Column 1: Personal Information
+  let colX = startX;
+  let colY = currentY;
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("Patient Details", colX, colY);
+  colY += 15;
+
+  doc.setFont(config.typography.defaultFont, "normal");
+  doc.setFontSize(config.typography.fontSizes.body);
+  doc.setTextColor(...config.colors.textDark);
+
+  const patientDetails = [
+    { label: "Name:", value: prescription.patientName || "N/A" },
+    {
+      label: "Age:",
+      value: prescription.patientAge
+        ? `${prescription.patientAge} years`
+        : "N/A",
+    },
+    { label: "Sex:", value: prescription.patientGender || "N/A" },
+    { label: "Date:", value: formatDateForDisplay(prescription.date) },
+  ];
+
+  for (const detail of patientDetails) {
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.text(detail.label, colX, colY);
+
+    const labelWidth = doc.getTextWidth(detail.label);
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.text(detail.value, colX + labelWidth + 5, colY);
+    colY += 12; // Reduced spacing
+  }
+
+  // Column 2: Basic Measurements
+  colX = startX + colWidth + colGap;
+  colY = currentY;
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("Basic Metrics", colX, colY);
+  colY += 15;
+
+  const basicMetrics = [
+    { label: "Weight:", value: weight },
+    { label: "Height:", value: height },
+  ];
+
+  for (const metric of basicMetrics) {
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.text(metric.label, colX, colY);
+
+    const labelWidth = doc.getTextWidth(metric.label);
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.text(metric.value, colX + labelWidth + 5, colY);
+    colY += 12; // Reduced spacing
+  }
+
+  // Column 3: BMI & Body Composition
+  colX = startX + (colWidth + colGap) * 2;
+  colY = currentY;
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("Body Composition", colX, colY);
+  colY += 15;
+
+  const bodyComposition = [
+    { label: "BMI:", value: bmi },
+    { label: "Category:", value: getBMICategoryText(bmi) },
+    { label: "Body Fat:", value: bodyFat },
+  ];
+
+  for (const comp of bodyComposition) {
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.text(comp.label, colX, colY);
+
+    const labelWidth = doc.getTextWidth(comp.label);
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.text(comp.value, colX + labelWidth + 5, colY);
+    colY += 12; // Reduced spacing
+  }
+
+  // Column 4: Metabolic Calculations
+  colX = startX + (colWidth + colGap) * 3;
+  colY = currentY;
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.subheading);
+  doc.setTextColor(...config.colors.primary);
+  doc.text("Metabolic Data", colX, colY);
+  colY += 15;
+
+  const metabolicData = [
+    { label: "Ideal Wt:", value: idealWeight },
+    { label: "BMR:", value: bmr },
+    { label: "Water:", value: water },
+  ];
+
+  for (const data of metabolicData) {
+    doc.setFont(config.typography.defaultFont, "bold");
+    doc.text(data.label, colX, colY);
+
+    const labelWidth = doc.getTextWidth(data.label);
+    doc.setFont(config.typography.defaultFont, "normal");
+    doc.text(data.value, colX + labelWidth + 5, colY);
+    colY += 12; // Reduced spacing
+  }
+
+  // Update final position
+  return y + 60; // Adjust based on content height
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Format date for display
+ */
+function formatDateForDisplay(dateString?: string): string {
+  if (!dateString) {
+    return format(new Date(), "yyyy/MM/dd");
+  }
+
+  try {
+    const date = new Date(dateString);
+    return format(date, "yyyy/MM/dd");
+  } catch (error) {
+    return format(new Date(), "yyyy/MM/dd");
+  }
+}
+
+/**
+ * Get BMI category text
+ */
+function getBMICategoryText(bmiValue: string): string {
+  if (bmiValue === "N/A") return "N/A";
+
+  const bmi = parseFloat(bmiValue);
+  if (isNaN(bmi)) return "Invalid";
+
+  if (bmi < 18.5) return "Underweight";
+  if (bmi < 25) return "Normal";
+  if (bmi < 30) return "Overweight";
+  if (bmi < 35) return "Obese Class I";
+  if (bmi < 40) return "Obese Class II";
+  return "Obese Class III";
+}
+
+/**
+ * Calculate ideal weight from prescription data
+ */
+function calculateIdealWeightFromData(prescription: VoicePrescription): string {
+  if (!prescription.height || !prescription.patientGender) {
+    return "N/A";
+  }
+
+  const height = parseFloat(prescription.height);
+  if (isNaN(height) || height <= 0) return "N/A";
+
+  // Convert cm to inches
+  const heightInInches = height / 2.54;
+  const feet = Math.floor(heightInInches / 12);
+  const inches = heightInInches % 12;
+  const totalInches = feet * 12 + inches;
+
+  let idealWeight: number;
+
+  if (prescription.patientGender === "Male") {
+    // Hamwi method for men: 48 kg for first 5 feet + 2.7 kg per additional inch
+    idealWeight = 48 + 2.7 * (totalInches - 60);
+  } else {
+    // Hamwi method for women: 45.5 kg for first 5 feet + 2.2 kg per additional inch
+    idealWeight = 45.5 + 2.2 * (totalInches - 60);
+  }
+
+  return `${idealWeight.toFixed(1)} kg`;
+}
+
+/**
+ * Calculate BMR from prescription data
+ */
+function calculateBMRFromData(prescription: VoicePrescription): string {
+  if (
+    !prescription.weight ||
+    !prescription.height ||
+    !prescription.patientAge ||
+    !prescription.patientGender
+  ) {
+    return "N/A";
+  }
+
+  const weight = parseFloat(prescription.weight);
+  const height = parseFloat(prescription.height);
+  const age = parseFloat(prescription.patientAge);
+
+  if (isNaN(weight) || isNaN(height) || isNaN(age)) {
+    return "N/A";
+  }
+
+  // Mifflin-St Jeor Equation
+  let bmr: number;
+  if (prescription.patientGender === "Male") {
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+  } else {
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+  }
+
+  return `${bmr.toFixed(0)} kcal/day`;
+}
+
+/**
+ * Calculate body fat percentage from prescription data
+ */
+function calculateBodyFatFromData(prescription: VoicePrescription): string {
+  if (
+    !prescription.patientAge ||
+    !prescription.patientGender ||
+    !prescription.bmi
+  ) {
+    return "N/A";
+  }
+
+  const bmi = parseFloat(prescription.bmi);
+  const age = parseFloat(prescription.patientAge);
+
+  if (isNaN(bmi) || isNaN(age)) {
+    return "N/A";
+  }
+
+  // Simple BMI-based estimation
+  let bodyFat: number;
+  if (prescription.patientGender === "Male") {
+    bodyFat = 1.2 * bmi + 0.23 * age - 16.2;
+  } else {
+    bodyFat = 1.2 * bmi + 0.23 * age - 5.4;
+  }
+
+  return `${bodyFat.toFixed(1)}%`;
+}
+
+/**
+ * Calculate water requirement from prescription data
+ */
+function calculateWaterFromData(prescription: VoicePrescription): string {
+  if (!prescription.weight) {
+    return "N/A";
+  }
+
+  const weight = parseFloat(prescription.weight);
+  if (isNaN(weight) || weight <= 0) {
+    return "N/A";
+  }
+
+  // Base water requirement: 30-35 ml per kg body weight (using average 32.5)
+  const baseWater = weight * 32.5;
+
+  return `${baseWater.toFixed(0)} ml/day`;
+}
+
+/**
+ * Add Follow Up section to the right column before signature
+ */
+function addFollowUpSection(
+  doc: jsPDF,
+  y: number,
+  x: number,
+  width: number,
+  prescription: VoicePrescription,
+  config: PDFConfig
+): number {
+  if (!prescription.followUp || !prescription.followUp.trim()) {
+    return y; // No follow up content, return same y position
+  }
+
+  // Section header with accent line
+  doc.setFillColor(...config.colors.accent);
+  doc.rect(x, y, 4, 16, "F");
+
+  doc.setFont(config.typography.defaultFont, "bold");
+  doc.setFontSize(config.typography.fontSizes.heading);
+  doc.setTextColor(...config.colors.primary);
+
+  const persianTranslation = HEADER_TRANSLATIONS["Follow Up"];
+  if (persianTranslation) {
+    drawBilingualText(
+      doc,
+      "FOLLOW UP INSTRUCTIONS",
+      persianTranslation,
+      x + 10,
+      y + 11,
+      config
+    );
+  } else {
+    doc.text("FOLLOW UP INSTRUCTIONS", x + 10, y + 11);
+  }
+
+  y += 22;
+
+  // Follow up content with background
+  const maxWidth = width - 15;
+  let currentY = y;
+
+  // Add a light background for the follow up section
+  doc.setFillColor(255, 253, 231); // Light yellow background
+  doc.rect(x + 5, currentY, width - 10, 60, "F");
+
+  // Add a border
+  doc.setDrawColor(...config.colors.warning);
+  doc.setLineWidth(0.5);
+  doc.rect(x + 5, currentY, width - 10, 60, "S");
+
+  // Draw follow up content
+  doc.setFont(config.typography.defaultFont, "normal");
+  doc.setFontSize(config.typography.fontSizes.body);
+  doc.setTextColor(...config.colors.textDark);
+
+  const followUpLines = doc.splitTextToSize(
+    prescription.followUp.trim(),
+    maxWidth - 10
+  );
+
+  // Start drawing text inside the box
+  let textY = currentY + 8;
+  const lineHeight =
+    config.typography.fontSizes.body * config.typography.lineHeights.normal;
+
+  for (let i = 0; i < followUpLines.length; i++) {
+    // Don't overflow the box (max 4-5 lines)
+    if (textY + lineHeight > currentY + 55) {
+      // Add ellipsis if content is too long
+      doc.setFont(config.typography.defaultFont, "italic");
+      doc.text("...", x + width - 15, currentY + 55);
+      break;
+    }
+
+    doc.text(followUpLines[i], x + 10, textY);
+    textY += lineHeight;
+  }
+
+  return currentY + 65; // Return new Y position (box height + spacing)
+}
+
 // ==================== MAIN PDF GENERATION FUNCTION ====================
 
 export async function generatePrescriptionPDF(
@@ -1186,62 +1691,20 @@ export async function generatePrescriptionPDF(
   const topSpacing = 100;
   let y = config.page.margins.top + topSpacing;
 
-  // ==================== PATIENT INFORMATION ====================
+  // ==================== ENHANCED PATIENT INFORMATION SECTION ====================
+  const patientSectionWidth =
+    pageWidth - config.page.margins.left - config.page.margins.right;
+  y = addEnhancedPatientInformation(
+    doc,
+    y,
+    config.page.margins.left,
+    patientSectionWidth,
+    prescription,
+    config
+  );
 
-  if (config.patientInfo.show) {
-    const patientBoxWidth =
-      pageWidth - config.page.margins.left - config.page.margins.right;
-
-    y += 25;
-
-    // Patient Info Grid - Compact version
-    const patientInfoRows = createPatientInfoRows(prescription, config);
-    const columnWidth = patientBoxWidth / config.patientInfo.columns;
-    const rowHeight = 12;
-    let rowY = y;
-
-    doc.setFontSize(config.typography.fontSizes.subheading);
-
-    for (let i = 0; i < patientInfoRows.length; i++) {
-      const info = patientInfoRows[i];
-      const col = i % config.patientInfo.columns;
-      const row = Math.floor(i / config.patientInfo.columns);
-      const xPos = config.page.margins.left + 5 + col * columnWidth;
-      const yPos = rowY + row * rowHeight;
-
-      if (config.patientInfo.showLabels) {
-        doc.setFont(
-          config.typography.defaultFont,
-          config.patientInfo.labelStyle
-        );
-        doc.setTextColor(...config.colors.primary);
-        doc.text(info.label + ":", xPos, yPos);
-
-        doc.setFont(config.typography.defaultFont, "normal");
-        doc.setTextColor(...config.colors.textDark);
-        const labelWidth = doc.getTextWidth(info.label + ": ");
-        doc.text(info.value, xPos + labelWidth, yPos);
-      } else {
-        doc.setTextColor(...config.colors.textDark);
-        doc.text(info.value, xPos, yPos);
-      }
-    }
-
-    y +=
-      Math.ceil(patientInfoRows.length / config.patientInfo.columns) *
-        rowHeight +
-      15;
-
-    // Green divider line
-    doc.setDrawColor(...config.colors.divider);
-    doc.setLineWidth(0.5);
-    doc.line(
-      config.page.margins.left,
-      y - 5,
-      config.page.margins.left + patientBoxWidth,
-      y - 5
-    );
-  }
+  // Add some spacing after patient information
+  y += 20;
 
   // ==================== TWO COLUMN LAYOUT ====================
 
@@ -1354,6 +1817,19 @@ export async function generatePrescriptionPDF(
     );
   }
 
+  // ==================== ADD FOLLOW UP SECTION ====================
+  // Add Follow Up section before signature
+  if (prescription.followUp && prescription.followUp.trim()) {
+    yRight = addFollowUpSection(
+      doc,
+      yRight,
+      rightColumnX,
+      rightColumnWidth,
+      prescription,
+      config
+    );
+  }
+
   // ==================== SIGNATURE ====================
 
   if (config.signature.show) {
@@ -1414,12 +1890,6 @@ function createPatientInfoRows(
     bmi: {
       label: "BMI",
       value: prescription.bmi || "N/A",
-    },
-    waist: {
-      label: "Waist",
-      value: prescription.waistCircumference
-        ? `${prescription.waistCircumference} cm`
-        : "N/A",
     },
     bodyFat: {
       label: "Body Fat",
@@ -1912,48 +2382,28 @@ function addFooter(
 ) {
   const footerY = pageHeight - config.footer.height;
 
-  // Show Follow Up information instead of digital note
-  if (prescription.followUp && prescription.followUp.trim()) {
-    doc.setFontSize(config.typography.fontSizes.small);
-    doc.setTextColor(...config.colors.primary);
-
-    // Draw "Follow Up:" label with Persian translation
-    doc.setFont(config.typography.defaultFont, "bold");
-    const persianTranslation = HEADER_TRANSLATIONS["Follow Up"];
-    if (persianTranslation) {
-      drawBilingualText(
-        doc,
-        "Follow Up:",
-        persianTranslation + ":",
-        pageWidth / 2,
-        footerY - 27,
-        config
-      );
-    } else {
-      doc.text("Follow Up:", pageWidth / 2, footerY - 27, { align: "center" });
-    }
-
-    // Draw follow up content
-    doc.setFont(config.typography.defaultFont, "normal");
-    const followUpLines = doc.splitTextToSize(
-      prescription.followUp,
-      pageWidth - 80 // Leave some margin on sides
-    );
-
-    let currentY = footerY - 15; // Increased spacing from -20 to -15 for more space
-    for (let i = 0; i < followUpLines.length; i++) {
-      doc.text(followUpLines[i], pageWidth / 2, currentY, { align: "center" });
-      currentY +=
-        config.typography.fontSizes.small *
-        config.typography.lineHeights.normal;
-    }
-  } else if (config.footer.showDigitalNote) {
-    // Fallback to digital note if no follow up content
+  // Only show digital note in footer
+  if (config.footer.showDigitalNote) {
     doc.setFontSize(config.typography.fontSizes.micro);
     doc.setTextColor(...config.colors.textDark);
     doc.text("Digitally generated prescription", pageWidth / 2, footerY + 10, {
       align: "center",
     });
+  }
+
+  // Optionally, you can still show page numbers here
+  if (config.footer.showPageNumbers) {
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(config.typography.fontSizes.micro);
+      doc.setTextColor(...config.colors.textDark);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth - config.page.margins.right - 20,
+        pageHeight - config.page.margins.bottom + 10
+      );
+    }
   }
 }
 
@@ -2020,12 +2470,6 @@ function addBodyMetricsSection(
       key: "waistCircumference",
       label: "Waist Circumference",
       value: prescription.waistCircumference,
-      unit: "cm",
-    },
-    {
-      key: "hipCircumference",
-      label: "Hip Circumference",
-      value: prescription.hipCircumference,
       unit: "cm",
     },
     {
@@ -2281,23 +2725,7 @@ function addLabExamsSection(
       textY += lineHeight;
     }
 
-    // Add exam number badge
-    doc.setFont(config.typography.defaultFont, "bold");
-    doc.setFontSize(config.typography.fontSizes.small);
-    doc.setTextColor(255, 255, 255);
-
-    const badgeText = `${i + 1}`;
-    const badgeWidth = doc.getTextWidth(badgeText) + 6;
-    const badgeHeight = 12;
-    const badgeX = cellX + cellWidth - badgeWidth - 4;
-    const badgeY = cellY + 4;
-
-    // Badge background
-    doc.setFillColor(...accentColors[currentCol]);
-    doc.rect(badgeX, badgeY, badgeWidth, badgeHeight, "F");
-
-    // Badge text
-    doc.text(badgeText, badgeX + 3, badgeY + 8);
+    // Removed exam number badge - no auto-increment numbers
 
     // Move to next column or row
     currentCol++;

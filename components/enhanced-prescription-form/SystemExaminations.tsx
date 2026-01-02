@@ -704,7 +704,7 @@ export function SystemExaminations({
                 </div>
                 <div className="text-left flex-1">
                   <span className="text-base font-bold text-foreground">
-                    Rescussion
+                    Prescussion
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     Breathing patterns, sounds, and oxygen status
