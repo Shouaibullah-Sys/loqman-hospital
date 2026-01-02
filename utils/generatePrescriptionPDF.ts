@@ -2643,7 +2643,7 @@ function addLabExamsSection(
   if (persianTranslation) {
     drawBilingualText(
       doc,
-      "Lab Exams",
+      "Lab Test&Other Investigations",
       persianTranslation,
       x + 10,
       y + 11,
