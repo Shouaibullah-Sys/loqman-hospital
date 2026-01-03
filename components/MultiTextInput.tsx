@@ -16,7 +16,7 @@ interface MultiTextInputProps {
   inputClassName?: string;
   description?: string;
   required?: boolean;
-  tagColor?: "red" | "blue" | "green" | "amber" | "primary";
+  tagColor?: "red" | "blue" | "green" | "amber" | "primary" | "purple";
   animationDelay?: number;
   autoFocus?: boolean;
 }
@@ -68,6 +68,8 @@ export function MultiTextInput({
     amber:
       "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
     primary: "bg-primary/10 text-primary border-primary/20",
+    purple:
+      "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
   };
 
   return (

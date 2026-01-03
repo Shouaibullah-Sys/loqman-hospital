@@ -210,13 +210,17 @@ export function PatientInformation({
       onUpdateField("bmi", bmi);
     }
 
-    // Auto-focus height after weight entry with visual feedback
-    setTimeout(() => {
-      if (inputRefs.current.height?.current) {
-        inputRefs.current.height.current.focus();
+    // OPTIONAL: Auto-focus to height only if weight looks complete
+    // For example, if weight has 2+ characters and looks like a complete number
+    const looksComplete = value.length >= 2 && /^\d+(\.\d*)?$/.test(value);
+
+    if (looksComplete && inputRefs.current.height?.current) {
+      // Small delay to let user finish typing
+      setTimeout(() => {
+        inputRefs.current.height.current?.focus();
         setActiveSection("metrics");
-      }
-    }, 100);
+      }, 500); // Longer delay to give user time to type
+    }
   };
 
   // Handle height change and auto-calculate BMI

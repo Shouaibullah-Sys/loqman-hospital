@@ -24,7 +24,6 @@ import { MedicalTests } from "./MedicalTests";
 import { DoctorInfo } from "./DoctorInfo";
 import { MedicationsTable } from "./MedicationsTable";
 import { Footer } from "./Footer";
-import { SYSTEM_EXAM_OPTIONS } from "./constants";
 import { Diagnosis } from "./Diagnosis";
 import { FollowUp } from "./FollowUp";
 
@@ -69,17 +68,6 @@ export function EnhancedPrescriptionForm({
     respiratoryExam: false,
     gastrointestinalExam: false,
     otherExam: false,
-  });
-
-  // State for quick selection
-  const [selectedQuickOptions, setSelectedQuickOptions] = useState<
-    Record<string, string[]>
-  >({
-    cns: [],
-    cardiovascular: [],
-    respiratory: [],
-    gastrointestinal: [],
-    other: [],
   });
 
   useEffect(() => {
@@ -403,40 +391,6 @@ export function EnhancedPrescriptionForm({
     }));
   };
 
-  // Toggle quick option selection
-  // Toggle quick option selection
-  const toggleQuickOption = (
-    system: keyof typeof SYSTEM_EXAM_OPTIONS,
-    option: string
-  ) => {
-    setSelectedQuickOptions((prev) => {
-      const current = [...prev[system]];
-      const index = current.indexOf(option);
-
-      if (index > -1) {
-        current.splice(index, 1);
-      } else {
-        current.push(option);
-      }
-
-      // Calculate the new text value
-      const textValue = current.map((opt) => `• ${opt}`).join("\n");
-
-      // Update the prescription field after state is set
-      const updatedOptions = {
-        ...prev,
-        [system]: current,
-      };
-
-      // Use useEffect-like approach - update prescription after quick options are set
-      const timer = setTimeout(() => {
-        updateField(`${system}Examination` as keyof Prescription, textValue);
-      }, 0);
-
-      return updatedOptions;
-    });
-  };
-
   const removeMedicine = (index: number) => {
     if (editablePrescription.medicines.length <= 1) {
       const updatedMeds = [...editablePrescription.medicines];
@@ -562,8 +516,8 @@ export function EnhancedPrescriptionForm({
               <SystemExaminations
                 prescription={editablePrescription}
                 onUpdateField={updateField}
-                selectedQuickOptions={selectedQuickOptions}
-                onToggleQuickOption={toggleQuickOption}
+                // REMOVED: selectedQuickOptions={selectedQuickOptions}
+                // REMOVED: onToggleQuickOption={toggleQuickOption}
               />
 
               {/* Medical Exams & Tests */}
