@@ -1688,7 +1688,7 @@ export async function generatePrescriptionPDF(
   const pageHeight = doc.internal.pageSize.getHeight();
 
   // Add 200px free space at the top
-  const topSpacing = 100;
+  const topSpacing = 150;
   let y = config.page.margins.top + topSpacing;
 
   // ==================== ENHANCED PATIENT INFORMATION SECTION ====================
