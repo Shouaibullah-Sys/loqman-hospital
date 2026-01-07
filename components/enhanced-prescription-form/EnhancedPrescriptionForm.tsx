@@ -476,15 +476,6 @@ export function EnhancedPrescriptionForm({
       <div className="h-full flex flex-col space-y-6 w-full max-w-full">
         {/* Main Form Card */}
         <Card className="flex-1 border-border/50 dark:border-border/30 w-full overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b dark:border-border/50">
-            <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl">
-              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-              Prescription and Examination Information
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Complete medical examination and prescription details
-            </CardDescription>
-          </CardHeader>
           <CardContent className="p-0 w-full">
             {/* Using flexbox instead of table for better responsiveness */}
             <div className="flex flex-col w-full">

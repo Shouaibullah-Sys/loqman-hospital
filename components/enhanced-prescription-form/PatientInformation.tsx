@@ -730,17 +730,29 @@ export function PatientInformation({
                   >
                     <SelectValue placeholder="Select sex" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male" className="text-sm">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700">
+                    <SelectItem
+                      value="Male"
+                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                    >
                       Male
                     </SelectItem>
-                    <SelectItem value="Female" className="text-sm">
+                    <SelectItem
+                      value="Female"
+                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                    >
                       Female
                     </SelectItem>
-                    <SelectItem value="Other" className="text-sm">
+                    <SelectItem
+                      value="Other"
+                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                    >
                       Other
                     </SelectItem>
-                    <SelectItem value="Prefer not to say" className="text-sm">
+                    <SelectItem
+                      value="Prefer not to say"
+                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                    >
                       Prefer not to say
                     </SelectItem>
                   </SelectContent>

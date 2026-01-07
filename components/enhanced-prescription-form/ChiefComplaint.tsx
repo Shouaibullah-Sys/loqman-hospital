@@ -662,7 +662,7 @@ export function ChiefComplaint({
                 </div>
                 <div className="text-left flex-1">
                   <span className="text-base font-bold text-foreground">
-                    Chief Complaints Assessment
+                    Chief Complaints
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {totalComplaints > 0
@@ -684,10 +684,6 @@ export function ChiefComplaint({
               {/* Add Complaint Section - Moved to top */}
               <div className="space-y-3">
                 <Label className="text-sm font-bold flex items-center gap-2">
-                  <div className="p-1.5 bg-gradient-to-br from-accent to-cyber-accent rounded-lg">
-                    <Plus className="h-4 w-4 text-accent-foreground" />
-                  </div>
-                  Add New Complaint
                   {hasJustAdded && (
                     <div className="ml-2 flex items-center gap-1 text-xs font-normal px-2 py-1 bg-accent/20 text-accent-foreground rounded-full">
                       <CheckCircle2 className="h-3 w-3" />
@@ -750,18 +746,6 @@ export function ChiefComplaint({
                         <Plus className="h-4 w-4 mr-2" />
                         Add
                       </Button>
-                    </div>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p className="font-medium">Examples:</p>
-                      <ul className="space-y-0.5">
-                        <li>
-                          • "Severe headache for 3 days, worse in the morning"
-                        </li>
-                        <li>• "Chest pain during exercise for 2 weeks"</li>
-                        <li>
-                          • "Fever and cough for 5 days, with yellow sputum"
-                        </li>
-                      </ul>
                     </div>
                   </div>
                 </div>

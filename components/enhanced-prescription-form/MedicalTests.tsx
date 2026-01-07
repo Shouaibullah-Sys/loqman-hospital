@@ -401,31 +401,6 @@ export function MedicalTests({
                         <div className="p-1 bg-blue-100 dark:bg-blue-900 rounded">
                           <Plus className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <div>
-                          <p className="font-medium">💡 Quick Tips:</p>
-                          <ul className="mt-1 space-y-1">
-                            <li>• Click on a suggestion to select it</li>
-                            <li>
-                              • Press{" "}
-                              <span className="font-mono bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
-                                Enter
-                              </span>{" "}
-                              to select the first suggestion
-                            </li>
-                            <li>
-                              • If no match found, press{" "}
-                              <span className="font-mono bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
-                                Enter
-                              </span>{" "}
-                              to add custom test
-                            </li>
-                            <li>
-                              • Custom tests are marked with{" "}
-                              <Plus className="h-3 w-3 inline text-amber-600" />{" "}
-                              icon
-                            </li>
-                          </ul>
-                        </div>
                       </div>
                     </div>
                   </div>

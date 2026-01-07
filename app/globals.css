@@ -1,7 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* Use this for dark mode instead of custom-variant */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -45,6 +50,7 @@
 
 :root {
   --radius: 0.625rem;
+  color-scheme: light;
 
   /* Clinic Theme - Light Mode */
   --background: oklch(0.98 0.01 220); /* Very light blueish-white */
@@ -56,48 +62,49 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 220);
 
-  /* Primary - Clinic Blue/Teal (for buttons, main actions) */
-  --primary: oklch(0.55 0.08 205); /* Soft teal-blue - #5c6b73 alternative */
-  --primary-foreground: oklch(0.98 0.01 220);
+  /* Primary - Clinic Blue/Teal */
+  --primary: oklch(0.55 0.08 205);
+  --primary-foreground: oklch(1 0 0); /* White text on primary */
 
-  /* Secondary - Light blue (for secondary buttons, backgrounds) */
-  --secondary: oklch(0.92 0.03 200); /* Light blue-gray - #c2dfe3 alternative */
-  --secondary-foreground: oklch(0.25 0.03 220); /* #253237 alternative */
+  /* Secondary */
+  --secondary: oklch(0.92 0.03 200);
+  --secondary-foreground: oklch(0.25 0.03 220);
 
-  /* Muted - Soft backgrounds */
-  --muted: oklch(0.96 0.02 210); /* Very light blue */
-  --muted-foreground: oklch(0.45 0.03 220); /* Medium gray-blue */
+  /* Muted */
+  --muted: oklch(0.96 0.02 210);
+  --muted-foreground: oklch(0.45 0.03 220);
 
-  /* Accent - Complementary color for highlights */
-  --accent: oklch(0.85 0.05 200); /* Light teal - #9db4c0 alternative */
+  /* Accent */
+  --accent: oklch(0.85 0.05 200);
   --accent-foreground: oklch(0.25 0.03 220);
 
-  /* Destructive - Soft medical red */
-  --destructive: oklch(0.6 0.2 25); /* Warm red for alerts */
+  /* Destructive */
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
 
   /* Borders & Inputs */
-  --border: oklch(0.88 0.02 220); /* Light blue-gray border */
-  --input: oklch(0.95 0.01 220); /* Very light input background */
-  --ring: oklch(0.55 0.08 205); /* Same as primary for focus rings */
+  --border: oklch(0.88 0.02 220);
+  --input: oklch(1 0 0); /* White input background */
+  --ring: oklch(0.55 0.08 205);
 
-  /* Charts - Medical-themed colors */
-  --chart-1: oklch(0.55 0.08 205); /* Primary teal */
-  --chart-2: oklch(0.65 0.1 170); /* Bright teal */
-  --chart-3: oklch(0.5 0.05 240); /* Soft blue */
-  --chart-4: oklch(0.7 0.06 150); /* Mint green */
-  --chart-5: oklch(0.6 0.15 30); /* Soft coral */
+  /* Charts */
+  --chart-1: oklch(0.55 0.08 205);
+  --chart-2: oklch(0.65 0.1 170);
+  --chart-3: oklch(0.5 0.05 240);
+  --chart-4: oklch(0.7 0.06 150);
+  --chart-5: oklch(0.6 0.15 30);
 
-  /* Sidebar - Light medical theme */
+  /* Sidebar */
   --sidebar: oklch(0.98 0.01 220);
   --sidebar-foreground: oklch(0.15 0.02 220);
   --sidebar-primary: oklch(0.55 0.08 205);
-  --sidebar-primary-foreground: oklch(0.98 0.01 220);
+  --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.92 0.03 200);
   --sidebar-accent-foreground: oklch(0.25 0.03 220);
   --sidebar-border: oklch(0.88 0.02 220);
   --sidebar-ring: oklch(0.55 0.08 205);
 
-  /* Cyberpunk color scheme - Light mode */
+  /* Cyberpunk */
   --cyber-primary: #0066cc;
   --cyber-secondary: #9900cc;
   --cyber-accent: #00aaff;
@@ -110,39 +117,42 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   /* Clinic Theme - Dark Mode */
-  --background: oklch(0.15 0.02 220); /* Dark blue-gray */
-  --foreground: oklch(0.95 0.01 220); /* Light blue-gray text */
+  --background: oklch(0.12 0.02 220); /* Slightly darker for better contrast */
+  --foreground: oklch(0.95 0.01 220);
 
   /* Cards & Popovers */
-  --card: oklch(0.2 0.03 220); /* Slightly lighter than background */
+  --card: oklch(0.18 0.03 220); /* Slightly lighter than background */
   --card-foreground: oklch(0.95 0.01 220);
-  --popover: oklch(56.663% 0.11145 170.634);
+  --popover: oklch(0.18 0.03 220); /* Fixed: was using light mode color */
   --popover-foreground: oklch(0.95 0.01 220);
 
-  /* Primary - Brighter teal for dark mode */
-  --primary: oklch(24.197% 0.05389 242.763); /* Brighter teal */
-  --primary-foreground: oklch(0.15 0.02 220);
+  /* Primary - Brighter for dark mode */
+  --primary: oklch(0.65 0.12 205); /* Brighter teal */
+  --primary-foreground: oklch(0.12 0.02 220); /* Dark background color */
 
-  /* Secondary - Dark blue-gray */
+  /* Secondary */
   --secondary: oklch(0.25 0.03 220);
   --secondary-foreground: oklch(0.95 0.01 220);
 
-  /* Muted - Dark muted areas */
-  --muted: oklch(0.22 0.02 220);
-  --muted-foreground: oklch(0.7 0.03 220);
+  /* Muted */
+  --muted: oklch(0.2 0.02 220);
+  --muted-foreground: oklch(0.7 0.02 220);
 
-  /* Accent - Medium gray */
-  --accent: oklch(0.35 0.02 220);
+  /* Accent */
+  --accent: oklch(0.3 0.04 220);
   --accent-foreground: oklch(0.95 0.01 220);
 
   /* Destructive */
-  --destructive: oklch(0.7 0.2 25);
+  --destructive: oklch(0.7 0.25 25);
+  --destructive-foreground: oklch(0.95 0.01 220);
 
   /* Borders & Inputs */
-  --border: oklch(0.3 0.03 220);
-  --input: oklch(0.25 0.03 220);
-  --ring: oklch(0.7 0.1 200); /* Same as primary */
+  --border: oklch(0.3 0.04 220);
+  --input: oklch(0.18 0.03 220); /* Same as card for consistency */
+  --ring: oklch(0.65 0.12 205); /* Match primary */
 
   /* Charts - Brighter for dark mode */
   --chart-1: oklch(0.7 0.1 200);
@@ -151,17 +161,17 @@
   --chart-4: oklch(0.8 0.08 150);
   --chart-5: oklch(0.75 0.18 30);
 
-  /* Sidebar - Dark medical theme */
-  --sidebar: oklch(0.2 0.03 220);
+  /* Sidebar */
+  --sidebar: oklch(0.15 0.02 220);
   --sidebar-foreground: oklch(0.95 0.01 220);
-  --sidebar-primary: oklch(0.7 0.1 200);
-  --sidebar-primary-foreground: oklch(0.15 0.02 220);
-  --sidebar-accent: oklch(0.3 0.05 200);
+  --sidebar-primary: oklch(0.65 0.12 205);
+  --sidebar-primary-foreground: oklch(0.12 0.02 220);
+  --sidebar-accent: oklch(0.25 0.04 220);
   --sidebar-accent-foreground: oklch(0.95 0.01 220);
-  --sidebar-border: oklch(0.3 0.03 220);
-  --sidebar-ring: oklch(0.7 0.1 200);
+  --sidebar-border: oklch(0.3 0.04 220);
+  --sidebar-ring: oklch(0.65 0.12 205);
 
-  /* Cyberpunk color scheme - Dark mode */
+  /* Cyberpunk - Dark mode */
   --cyber-primary: #00ffff;
   --cyber-secondary: #ff00ff;
   --cyber-accent: #ff00ea;
@@ -175,10 +185,43 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* Better focus styles for all interactive elements */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-1 ring-offset-background;
+  }
+
+  /* Select component specific fixes */
+  .select-content {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
+
+  .select-item {
+    color: var(--popover-foreground);
+  }
+
+  .select-item[data-highlighted] {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .select-value {
+    color: var(--foreground);
+  }
+
+  /* Ensure inputs have proper contrast */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    background-color: var(--input);
+    color: var(--foreground);
   }
 
   /* Custom clinic-themed button styles */
@@ -186,48 +229,20 @@
     @apply bg-primary text-primary-foreground hover:bg-primary/90 
            focus-visible:outline-none focus-visible:ring-2 
            focus-visible:ring-ring focus-visible:ring-offset-2 
-           transition-colors duration-200;
-  }
-
-  /* Clinic-specific focus styles */
-  :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
-
-  /* Custom border styles for clinic elements */
-  .clinic-border {
-    @apply border-2 border-border/50 rounded-lg;
-  }
-
-  /* Medical card style */
-  .medical-card {
-    @apply bg-card border border-border rounded-xl shadow-sm 
-           hover:shadow-md transition-shadow duration-200;
+           transition-colors duration-200 font-medium;
   }
 }
-.fixed-select-content {
-  background-color: var(--popover);
-  color: var(--popover-foreground);
-}
 
-.fixed-select-content [data-radix-select-viewport] {
-  color: var(--foreground);
-}
-
-.fixed-select-content [role="option"] {
-  color: var(--foreground) !important;
-}
-
-.dark .fixed-select-content [role="option"] {
-  color: var(--foreground) !important;
-}
-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-to {
-  opacity: 1;
-  transform: translateY(0);
+/* Animation keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fadeInUp {
@@ -261,7 +276,7 @@ to {
   color: transparent;
 }
 
-/* Sparkle animation for logo effects */
+/* Sparkle animation */
 .sparkle {
   animation: sparkle 2s infinite;
 }
@@ -278,7 +293,6 @@ to {
   }
 }
 
-/* Additional sparkle variations */
 .sparkle:nth-child(1) {
   animation-delay: 0s;
 }
@@ -293,4 +307,17 @@ to {
 
 .sparkle:nth-child(4) {
   animation-delay: 0.9s;
+}
+
+/* Utility classes for fixing common issues */
+.fixed-text-contrast {
+  color: var(--foreground);
+}
+
+.fixed-bg-contrast {
+  background-color: var(--background);
+}
+
+.fixed-border-contrast {
+  border-color: var(--border);
 }

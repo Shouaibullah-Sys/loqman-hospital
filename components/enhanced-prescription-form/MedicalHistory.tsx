@@ -229,7 +229,7 @@ export function MedicalHistory({
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                     <Pill className="h-3.5 w-3.5 text-accent" />
-                    Current Medications
+                    History of the Chief Complain{" "}
                   </div>
                   {localCurrentMeds.length > 0 ? (
                     <div className="flex items-center gap-1 px-2 py-1 bg-accent/20 dark:bg-accent/30 rounded-full">
@@ -331,7 +331,7 @@ export function MedicalHistory({
                 </div>
                 <div className="text-left flex-1">
                   <span className="text-base font-bold text-foreground">
-                    Current Medications
+                    History of the Chief Complain
                   </span>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {localCurrentMeds.length > 0
@@ -350,10 +350,6 @@ export function MedicalHistory({
             <AccordionContent className="pb-5">
               <div className="space-y-3">
                 <Label className="text-sm font-bold flex items-center gap-2">
-                  <div className="p-1.5 bg-gradient-to-br from-accent to-cyber-accent rounded-lg">
-                    <Pill className="h-4 w-4 text-accent-foreground" />
-                  </div>
-                  Active Medications
                   {validationErrors["meds"] && (
                     <div className="ml-2 flex items-center gap-1 text-xs font-normal px-2 py-1 bg-destructive/10 text-destructive rounded-full">
                       <AlertCircle className="h-3 w-3" />
@@ -415,36 +411,6 @@ export function MedicalHistory({
                     description="Include dosage, frequency, and route. Press Enter or click Add to save."
                     inputClassName="text-sm h-10 bg-background border-accent/30 focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                   />
-
-                  <div className="mt-3 text-xs text-muted-foreground space-y-2">
-                    <p className="font-medium">Best Practices:</p>
-                    <ul className="space-y-1">
-                      <li className="flex items-start gap-1">
-                        <span className="text-accent">•</span>
-                        <span>
-                          Include generic name, strength, frequency, and route
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-1">
-                        <span className="text-accent">•</span>
-                        <span>
-                          Document as "MedicationName Strength Frequency Route"
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-1">
-                        <span className="text-accent">•</span>
-                        <span>
-                          Include OTC medications, supplements, and herbals
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-1">
-                        <span className="text-accent">•</span>
-                        <span>
-                          Note adherence issues or side effects if known
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
                 </div>
 
                 {localCurrentMeds.length > 0 && (
@@ -624,84 +590,10 @@ export function MedicalHistory({
 • Pregnancy and obstetric history (if applicable)"
                       rows={8}
                     />
-
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs text-muted-foreground">
-                        Document previous medical conditions, treatments, and
-                        hospitalizations chronologically
-                      </div>
-                      <div
-                        className={cn(
-                          "text-xs font-medium px-2 py-1 rounded-full",
-                          historyLength > 1800
-                            ? "bg-destructive/10 text-destructive"
-                            : historyLength > 1500
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200"
-                            : "bg-primary/10 text-primary dark:bg-primary/20"
-                        )}
-                      >
-                        {historyLength}/2000 characters
-                      </div>
-                    </div>
                   </div>
                 </div>
 
                 {/* Medical History Template */}
-                <div className="text-xs text-muted-foreground">
-                  <div className="flex items-start gap-3 p-3 bg-gradient-to-br from-card/50 to-background/50 rounded-xl border border-border/30">
-                    <div className="p-1.5 bg-gradient-to-br from-primary to-cyber-secondary rounded-lg">
-                      <FileSearch className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-foreground mb-1">
-                        Structured Documentation Template:
-                      </p>
-                      <div className="space-y-2">
-                        <div>
-                          <span className="font-medium text-primary">
-                            Chronic Conditions:
-                          </span>
-                          <div className="ml-2 text-muted-foreground">
-                            List with diagnosis year, current status, and
-                            treatment
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium text-primary">
-                            Surgical History:
-                          </span>
-                          <div className="ml-2 text-muted-foreground">
-                            Include procedure, year, surgeon, and complications
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium text-primary">
-                            Hospitalizations:
-                          </span>
-                          <div className="ml-2 text-muted-foreground">
-                            Dates, reasons, and outcomes
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium text-primary">
-                            Family History:
-                          </span>
-                          <div className="ml-2 text-muted-foreground">
-                            Medical conditions in immediate family members
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium text-primary">
-                            Social History:
-                          </span>
-                          <div className="ml-2 text-muted-foreground">
-                            Smoking, alcohol, occupation, living situation
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </AccordionContent>
           </AccordionItem>

@@ -297,23 +297,6 @@ export function SystemExaminations({
           </div>
 
           {/* Quick Tips */}
-          <div className="mt-3">
-            <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Examination Guidelines
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                <ChevronRight className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                <span>Type findings and press Enter to add</span>
-              </div>
-              <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                <ChevronRight className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                <span>Click on X to remove findings</span>
-              </div>
-            </div>
-          </div>
-
           {/* System Summary */}
           <div className="mt-auto pt-4 border-t border-border/30">
             <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
