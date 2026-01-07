@@ -346,7 +346,7 @@ export const defaultPDFConfig: PDFConfig = {
       medicalHistory: 70, // 70pt height
       pastMedicalHistory: 70, // 70pt height
       labExams: 120, // 120pt height (increased by 30px for more space)
-      diagnosis: 60, // 60pt height
+      diagnosis: 80, // Increased from 60pt to allow space for VITAL SIGNS below
       allergies: 60, // 40pt height
       familyHistory: 50, // 50pt height
       socialHistory: 50, // 50pt height
@@ -1241,7 +1241,7 @@ function calculateLeftColumnLayout(
       config.layout.leftSectionHeights.diagnosis + config.layout.sectionSpacing;
   }
 
-  // Note: Diagnosis/Allergies section moved to right column
+  // Note: VITAL SIGNS will be added separately after all clinical sections
 
   if (
     prescription.socialHistory &&
@@ -1772,7 +1772,7 @@ export async function generatePrescriptionPDF(
       leftColumnX + leftColumnWidth + config.layout.columnGap / 2,
       yLeft,
       leftColumnX + leftColumnWidth + config.layout.columnGap / 2,
-      yLeft + leftLayout.totalHeight + 20
+      yLeft + leftLayout.totalHeight + 100 // Increased height to accommodate VITAL SIGNS
     );
 
     // Draw each section with fixed height
@@ -1791,22 +1791,24 @@ export async function generatePrescriptionPDF(
       currentY += section.height + config.layout.sectionSpacing;
     }
 
+    // ==================== ADD VITAL SIGNS TO LEFT COLUMN ====================
+    if (config.vitalSigns.show && hasVitalSigns(prescription)) {
+      currentY = addCompactVitalSigns(
+        doc,
+        currentY,
+        leftColumnX,
+        leftColumnWidth,
+        prescription,
+        config
+      );
+    }
+
     yLeft = currentY;
   }
 
   // ==================== RIGHT COLUMN: MAIN CONTENT ====================
 
-  // VITAL SIGNS
-  if (config.vitalSigns.show && hasVitalSigns(prescription)) {
-    yRight = addCompactVitalSigns(
-      doc,
-      yRight,
-      rightColumnX,
-      rightColumnWidth,
-      prescription,
-      config
-    );
-  }
+  // REMOVED: VITAL SIGNS from right column (now in left column)
 
   // BODY METRICS SECTION
   if (config.bodyMetrics.show && hasBodyMetrics(prescription)) {
