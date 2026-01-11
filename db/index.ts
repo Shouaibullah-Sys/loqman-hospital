@@ -24,9 +24,9 @@ const createConnection = () => {
   const url = new URL(connectionString);
 
   // Add connection timeout and retry parameters
-  url.searchParams.set("connection_timeout", "10"); // 10 seconds
-  url.searchParams.set("pool_timeout", "30"); // 30 seconds
-  url.searchParams.set("statement_timeout", "60"); // 60 seconds
+  url.searchParams.set("connection_timeout", "30"); // 30 seconds (increased for Neon resume time)
+  url.searchParams.set("pool_timeout", "60"); // 60 seconds
+  url.searchParams.set("statement_timeout", "120"); // 120 seconds
   url.searchParams.set("idle_timeout", "300"); // 5 minutes
 
   return neon(url.toString());
@@ -43,16 +43,27 @@ export const db = drizzle(sql, {
   },
 });
 
-// Connection health check
+// Connection health check with extended timeout for Neon resume
 export const checkDatabaseConnection = async () => {
   try {
     const result = await sql`SELECT 1 as health_check`;
     return { healthy: true, result };
   } catch (error) {
     console.error("Database connection failed:", error);
-    // Try to recreate connection
+    // Try to recreate connection with longer timeout for Neon resume
     try {
-      sql = createConnection();
+      // Create connection with even longer timeout for resume
+      const resumeConnection = () => {
+        const connectionString = process.env.DATABASE_URL!;
+        const url = new URL(connectionString);
+        url.searchParams.set("connection_timeout", "60"); // 60 seconds for resume
+        url.searchParams.set("pool_timeout", "120"); // 120 seconds
+        url.searchParams.set("statement_timeout", "180"); // 180 seconds
+        url.searchParams.set("idle_timeout", "300");
+        return neon(url.toString());
+      };
+
+      sql = resumeConnection();
       const result = await sql`SELECT 1 as health_check`;
       return { healthy: true, result, reconnected: true };
     } catch (retryError) {
@@ -78,7 +89,8 @@ export const dbQuery = async <T>(
       // If it's a connection error, try to reconnect
       if (
         error?.cause?.code === "ETIMEDOUT" ||
-        error?.message?.includes("fetch failed")
+        error?.message?.includes("fetch failed") ||
+        error?.message?.includes("connection")
       ) {
         console.warn(
           `Database query attempt ${attempt} failed, retrying...`,
@@ -86,17 +98,29 @@ export const dbQuery = async <T>(
         );
 
         if (attempt < maxRetries) {
-          // Recreate connection before retry
+          // Recreate connection before retry with longer timeout for Neon resume
           try {
-            sql = createConnection();
+            const resumeConnection = () => {
+              const connectionString = process.env.DATABASE_URL!;
+              const url = new URL(connectionString);
+              url.searchParams.set(
+                "connection_timeout",
+                attempt === 1 ? "60" : "30"
+              ); // Longer timeout for first attempt
+              url.searchParams.set("pool_timeout", "120");
+              url.searchParams.set("statement_timeout", "180");
+              url.searchParams.set("idle_timeout", "300");
+              return neon(url.toString());
+            };
+            sql = resumeConnection();
           } catch (reconnectError) {
             console.error("Failed to recreate connection:", reconnectError);
           }
 
-          // Wait before retry (exponential backoff)
-          await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, attempt - 1) * 1000)
-          );
+          // Wait before retry (longer wait for first attempt)
+          const waitTime =
+            attempt === 1 ? 5000 : Math.pow(2, attempt - 1) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue;
         }
       }

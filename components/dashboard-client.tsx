@@ -10,7 +10,6 @@ import ErrorAlert from "./ErrorAlert";
 import { EnhancedPrescriptionForm } from "./enhanced-prescription-form/enhanced-prescription-form";
 import { PrescriptionAmount } from "./prescription-amount";
 import { Prescription } from "@/types/prescription";
-import { CyberpunkHeader } from "./CyberpunkHeader";
 import {
   Card,
   CardContent,
@@ -419,13 +418,6 @@ export default function DashboardClient({
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        {/* Royal Header */}
-        <CyberpunkHeader
-          todayPrescriptions={todayPrescriptions}
-          monthlyPrescriptions={monthlyPrescriptions}
-          onLogout={handleRoyalHeaderLogout}
-        />
-
         {/* Database Status Banner */}
         {databaseStatus !== "connected" && (
           <div

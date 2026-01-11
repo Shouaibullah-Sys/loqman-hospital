@@ -16,16 +16,8 @@ import { Prescription, FormMedicine } from "@/types/prescription";
 
 // Import all separated components
 import { PatientInformation } from "./PatientInformation";
-import { ChiefComplaint } from "./ChiefComplaint"; // NEW IMPORT
-import { MedicalHistory } from "./MedicalHistory";
-import { VitalSigns } from "./VitalSigns";
-import { SystemExaminations } from "./SystemExaminations";
-import { MedicalTests } from "./MedicalTests";
-import { DoctorInfo } from "./DoctorInfo";
 import { MedicationsTable } from "./MedicationsTable";
 import { Footer } from "./Footer";
-import { Diagnosis } from "./Diagnosis";
-import { FollowUp } from "./FollowUp";
 
 interface EnhancedPrescriptionFormProps {
   prescription: Prescription;
@@ -484,54 +476,6 @@ export function EnhancedPrescriptionForm({
                 prescription={editablePrescription}
                 onUpdateField={updateField}
               />
-
-              {/* Chief Complaint - ADDED HERE */}
-              <ChiefComplaint
-                prescription={editablePrescription}
-                onUpdateField={updateField}
-              />
-
-              {/* Medical History */}
-              <MedicalHistory
-                prescription={editablePrescription}
-                onUpdateField={updateField}
-              />
-
-              {/* Vital Signs */}
-              <VitalSigns
-                prescription={editablePrescription}
-                onUpdateField={updateField}
-              />
-
-              {/* System Examinations */}
-              <SystemExaminations
-                prescription={editablePrescription}
-                onUpdateField={updateField}
-                // REMOVED: selectedQuickOptions={selectedQuickOptions}
-                // REMOVED: onToggleQuickOption={toggleQuickOption}
-              />
-
-              {/* Medical Exams & Tests */}
-              <MedicalTests
-                prescription={editablePrescription}
-                onUpdateField={updateField}
-                selectedTestObjects={selectedTestObjects}
-                onTestsChange={handleTestsChange}
-                onSelectedExamsChange={handleSelectedExamsChange}
-              />
-
-              {/* Diagnosis */}
-              <Diagnosis
-                prescription={editablePrescription}
-                onUpdateField={updateField}
-              />
-
-              {/* Doctor & Clinic Info */}
-              <DoctorInfo
-                prescription={editablePrescription}
-                onUpdateField={updateField}
-              />
-
               {/* Medicines Section */}
               <MedicationsTable
                 prescription={editablePrescription}
@@ -539,12 +483,6 @@ export function EnhancedPrescriptionForm({
                 onMedicineInput={handleMedicineInput}
                 onAddMedicine={addMedicine}
                 onRemoveMedicine={removeMedicine}
-              />
-
-              {/* Follow Up */}
-              <FollowUp
-                prescription={editablePrescription}
-                onUpdateField={updateField}
               />
             </div>
           </CardContent>

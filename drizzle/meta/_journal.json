@@ -5,64 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1762625681046,
-      "tag": "0000_flowery_nehzno",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1762626000000,
-      "tag": "0001_remove_unused_clinical_fields",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1762626300000,
-      "tag": "0002_remove_diagnosis_field",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1766577016000,
-      "tag": "0003_add_missing_fields_and_tables",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1766739400000,
-      "tag": "0004_add_heart_rate_field",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1766821860000,
-      "tag": "0005_add_persian_medication_fields",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1766822400000,
-      "tag": "0006_remove_bmi_column",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1766823000000,
-      "tag": "0007_make_testid_optional",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1735396731000,
-      "tag": "0008_add_system_examination_fields",
+      "when": 1768105697301,
+      "tag": "0000_acoustic_hellion",
       "breakpoints": true
     }
   ]
