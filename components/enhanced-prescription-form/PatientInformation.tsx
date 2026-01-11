@@ -13,33 +13,13 @@ import {
   User,
   Phone,
   Calendar,
-  Calculator,
-  Scale,
-  Ruler,
   ChevronRight,
   AlertCircle,
   CheckCircle2,
-  Zap,
-  Heart,
-  Brain,
   Activity,
-  Target,
-  Droplets,
 } from "lucide-react";
 import { Prescription } from "@/types/prescription";
-import {
-  calculateBMI,
-  getBMICategory,
-  calculateIdealBodyWeight,
-  calculateBMR,
-  calculateBodySurfaceArea,
-  calculateBodyFatPercentage,
-  calculateLeanBodyMass,
-  calculateWaistToHeightRatio,
-  calculateAdjustedBodyWeight,
-  calculateWaterRequirement,
-  calculateTDEE,
-} from "@/utils/calculations";
+import { calculateBMI, getBMICategory } from "@/utils/calculations";
 import { cn } from "@/lib/utils";
 
 interface PatientInformationProps {
@@ -58,9 +38,7 @@ export function PatientInformation({
     | "patientGender"
     | "patientPhone"
     | "weight"
-    | "height"
-    | "waistCircumference"
-    | "hipCircumference";
+    | "height";
 
   // Create refs for all input fields
   const inputRefs = useRef({
@@ -69,8 +47,6 @@ export function PatientInformation({
     patientPhone: useRef<HTMLInputElement>(null),
     weight: useRef<HTMLInputElement>(null),
     height: useRef<HTMLInputElement>(null),
-    waistCircumference: useRef<HTMLInputElement>(null),
-    hipCircumference: useRef<HTMLInputElement>(null),
     patientGender: useRef<HTMLButtonElement>(null), // Select trigger ref
   });
 
@@ -82,8 +58,6 @@ export function PatientInformation({
     "patientPhone",
     "weight",
     "height",
-    "waistCircumference",
-    "hipCircumference",
   ];
 
   // State for validation and interactions
@@ -94,10 +68,6 @@ export function PatientInformation({
     Record<string, string>
   >({});
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
-  const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
-  const [activityLevel, setActivityLevel] = useState<
-    "sedentary" | "light" | "moderate" | "active" | "veryActive"
-  >("moderate");
 
   // Handle Enter key navigation with enhanced feedback
   const handleKeyDown = useCallback(
@@ -210,16 +180,14 @@ export function PatientInformation({
       onUpdateField("bmi", bmi);
     }
 
-    // OPTIONAL: Auto-focus to height only if weight looks complete
-    // For example, if weight has 2+ characters and looks like a complete number
+    // Auto-focus to height only if weight looks complete
     const looksComplete = value.length >= 2 && /^\d+(\.\d*)?$/.test(value);
 
     if (looksComplete && inputRefs.current.height?.current) {
-      // Small delay to let user finish typing
       setTimeout(() => {
         inputRefs.current.height.current?.focus();
         setActiveSection("metrics");
-      }, 500); // Longer delay to give user time to type
+      }, 500);
     }
   };
 
@@ -247,202 +215,10 @@ export function PatientInformation({
     }
   };
 
-  // Calculate all body metrics
-  const calculateAllBodyMetrics = () => {
-    if (!prescription.weight || !prescription.height) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        metrics: "Weight and height are required for calculations",
-      }));
-      return;
-    }
-
-    const bmi = calculateBMI(prescription.weight, prescription.height);
-    onUpdateField("bmi", bmi);
-
-    // Calculate comprehensive body metrics
-    if (prescription.patientAge && prescription.patientGender) {
-      // BMI-based calculations
-      const bodyFatPercentage = calculateBodyFatPercentage(
-        prescription.patientAge,
-        prescription.patientGender,
-        bmi
-      );
-      onUpdateField("bodyFatPercentage", bodyFatPercentage);
-
-      const leanBodyMass = calculateLeanBodyMass(
-        prescription.weight,
-        bodyFatPercentage
-      );
-      onUpdateField("leanBodyMass", leanBodyMass);
-
-      // BMR and TDEE calculations
-      const bmrData = calculateBMR(
-        prescription.weight,
-        prescription.height,
-        prescription.patientAge,
-        prescription.patientGender
-      );
-      onUpdateField("basalMetabolicRate", bmrData.average);
-
-      const tdee = calculateTDEE(bmrData.average, activityLevel);
-      onUpdateField("totalDailyEnergyExpenditure", tdee);
-    }
-
-    // Body composition calculations
-    if (prescription.waistCircumference) {
-      const waistToHeightRatio = calculateWaistToHeightRatio(
-        prescription.waistCircumference,
-        prescription.height
-      );
-      onUpdateField("waistToHeightRatio", waistToHeightRatio);
-    }
-
-    // Weight-related calculations
-    if (prescription.patientGender) {
-      const idealWeightData = calculateIdealBodyWeight(
-        prescription.height,
-        prescription.patientGender
-      );
-      onUpdateField("idealBodyWeight", idealWeightData.average);
-
-      const adjustedBodyWeight = calculateAdjustedBodyWeight(
-        prescription.weight,
-        prescription.height,
-        prescription.patientGender
-      );
-      onUpdateField("adjustedBodyWeight", adjustedBodyWeight);
-    }
-
-    // Surface area and hydration
-    const bsaData = calculateBodySurfaceArea(
-      prescription.weight,
-      prescription.height
-    );
-    onUpdateField("bodySurfaceArea", bsaData.average);
-
-    const waterRequirement = calculateWaterRequirement(
-      prescription.weight,
-      activityLevel === "veryActive"
-        ? "athlete"
-        : activityLevel === "active"
-        ? "active"
-        : "sedentary"
-    );
-    onUpdateField("waterRequirement", waterRequirement);
-
-    setLastCalculated(new Date());
-
-    // Clear metrics error
-    setValidationErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors.metrics;
-      return newErrors;
-    });
-
-    // Visual feedback
-    const calculateBtn = document.querySelector("[data-calculate-btn]");
-    if (calculateBtn) {
-      calculateBtn.classList.add("ring-2", "ring-purple-500", "ring-offset-2");
-      setTimeout(() => {
-        calculateBtn.classList.remove(
-          "ring-2",
-          "ring-purple-500",
-          "ring-offset-2"
-        );
-      }, 500);
-    }
-
-    // Focus back on weight field after calculation
-    setTimeout(() => {
-      if (inputRefs.current.weight?.current) {
-        inputRefs.current.weight.current.focus();
-      }
-    }, 200);
-  };
-
   // Get BMI category for display
   const bmiCategory = prescription.bmi
     ? getBMICategory(prescription.bmi)
     : null;
-
-  // Calculate all advanced metrics - EXTRACT THE AVERAGE VALUES
-  const idealWeightData =
-    prescription.height && prescription.patientGender
-      ? calculateIdealBodyWeight(
-          prescription.height,
-          prescription.patientGender
-        )
-      : null;
-
-  const idealWeightValue = idealWeightData?.average || "";
-
-  const bmrData =
-    prescription.weight &&
-    prescription.height &&
-    prescription.patientAge &&
-    prescription.patientGender
-      ? calculateBMR(
-          prescription.weight,
-          prescription.height,
-          prescription.patientAge,
-          prescription.patientGender
-        )
-      : null;
-
-  const bmrValue = bmrData?.average || "";
-
-  const bsaData =
-    prescription.weight && prescription.height
-      ? calculateBodySurfaceArea(prescription.weight, prescription.height)
-      : null;
-
-  const bsaValue = bsaData?.average || "";
-
-  // Additional calculated metrics
-  const bodyFatPercentage =
-    prescription.patientAge && prescription.patientGender && prescription.bmi
-      ? calculateBodyFatPercentage(
-          prescription.patientAge,
-          prescription.patientGender,
-          prescription.bmi
-        )
-      : "";
-
-  const leanBodyMassValue =
-    prescription.weight && bodyFatPercentage
-      ? calculateLeanBodyMass(prescription.weight, bodyFatPercentage)
-      : "";
-
-  const waistToHeightRatioValue =
-    prescription.waistCircumference && prescription.height
-      ? calculateWaistToHeightRatio(
-          prescription.waistCircumference,
-          prescription.height
-        )
-      : "";
-
-  const adjustedBodyWeightValue =
-    prescription.height && prescription.patientGender && prescription.weight
-      ? calculateAdjustedBodyWeight(
-          prescription.weight,
-          prescription.height,
-          prescription.patientGender
-        )
-      : "";
-
-  const tdeeValue = bmrValue ? calculateTDEE(bmrValue, activityLevel) : "";
-
-  const waterRequirementValue = prescription.weight
-    ? calculateWaterRequirement(
-        prescription.weight,
-        activityLevel === "veryActive"
-          ? "athlete"
-          : activityLevel === "active"
-          ? "active"
-          : "sedentary"
-      )
-    : "";
 
   // Check if all required fields are filled
   const isComplete =
@@ -452,29 +228,18 @@ export function PatientInformation({
     prescription.weight &&
     prescription.height;
 
-  // Check if we have any advanced metrics to show
-  const hasAdvancedMetrics =
-    idealWeightValue ||
-    bmrValue ||
-    bsaValue ||
-    bodyFatPercentage ||
-    leanBodyMassValue ||
-    waistToHeightRatioValue ||
-    adjustedBodyWeightValue ||
-    tdeeValue ||
-    waterRequirementValue;
-
   return (
     <div
       id="patient-information"
-      className="group flex flex-col sm:flex-row border-2 border-blue-100 dark:border-blue-800/30 rounded-xl overflow-hidden hover:border-blue-200 dark:hover:border-blue-700/50 transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/10 shadow-sm hover:shadow-md"
+      className="group flex flex-col sm:flex-row border-2 border-blue-100 rounded-xl overflow-hidden hover:border-blue-200 transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30 shadow-sm hover:shadow-md dark:border-blue-800/30 dark:hover:border-blue-700/50 dark:from-gray-900 dark:to-blue-950/10"
     >
       {/* Left Sidebar - Clinical Summary */}
       <div
         className={cn(
-          "w-full sm:w-1/4 p-4 sm:p-5 border-b sm:border-b-0 sm:border-r border-blue-200/50 dark:border-blue-800/30 transition-all duration-300",
-          "bg-gradient-to-b from-blue-50/80 to-white dark:from-blue-950/40 dark:to-gray-900",
-          activeSection === "personal" && "bg-blue-50/90 dark:bg-blue-950/50"
+          "w-full sm:w-1/4 p-4 sm:p-5 border-b sm:border-b-0 sm:border-r border-blue-200/50 transition-all duration-300",
+          "bg-gradient-to-b from-blue-50/80 to-white",
+          activeSection === "personal" && "bg-blue-50/90",
+          "dark:border-blue-800/30 dark:from-blue-950/40 dark:to-gray-900 dark:bg-blue-950/50"
         )}
       >
         <div className="flex flex-col h-full">
@@ -487,7 +252,7 @@ export function PatientInformation({
               <div className="font-bold text-sm sm:text-base tracking-tight text-gray-900 dark:text-white">
                 Patient Profile
               </div>
-              <div className="text-xs text-blue-600 dark:text-blue-300 font-medium mt-0.5">
+              <div className="text-xs text-blue-600 font-medium mt-0.5 dark:text-blue-300">
                 Clinical Data Summary
               </div>
             </div>
@@ -500,14 +265,14 @@ export function PatientInformation({
                 Status
               </span>
               {isComplete ? (
-                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 rounded-full dark:bg-green-900/30">
                   <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400" />
                   <span className="text-xs font-medium text-green-700 dark:text-green-300">
                     Complete
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 rounded-full dark:bg-amber-900/30">
                   <AlertCircle className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                   <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
                     In Progress
@@ -519,7 +284,7 @@ export function PatientInformation({
             {/* Quick Stats */}
             <div className="space-y-3">
               {prescription.patientName && (
-                <div className="p-2 bg-white dark:bg-gray-800/50 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                <div className="p-2 bg-white rounded-lg border border-blue-100 dark:bg-gray-800/50 dark:border-blue-800/30">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Name
                   </div>
@@ -531,7 +296,7 @@ export function PatientInformation({
 
               <div className="grid grid-cols-2 gap-2">
                 {prescription.patientAge && (
-                  <div className="p-2 bg-white dark:bg-gray-800/50 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                  <div className="p-2 bg-white rounded-lg border border-blue-100 dark:bg-gray-800/50 dark:border-blue-800/30">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       Age
                     </div>
@@ -542,7 +307,7 @@ export function PatientInformation({
                 )}
 
                 {prescription.patientGender && (
-                  <div className="p-2 bg-white dark:bg-gray-800/50 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                  <div className="p-2 bg-white rounded-lg border border-blue-100 dark:bg-gray-800/50 dark:border-blue-800/30">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       Sex
                     </div>
@@ -559,11 +324,11 @@ export function PatientInformation({
                   className={cn(
                     "p-3 rounded-lg border transition-all duration-300",
                     bmiCategory.color.includes("green") &&
-                      "bg-green-50/80 dark:bg-green-900/20 border-green-200 dark:border-green-800/30",
+                      "bg-green-50/80 border-green-200 dark:bg-green-900/20 dark:border-green-800/30",
                     bmiCategory.color.includes("amber") &&
-                      "bg-amber-50/80 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30",
+                      "bg-amber-50/80 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/30",
                     bmiCategory.color.includes("red") &&
-                      "bg-red-50/80 dark:bg-red-900/20 border-red-200 dark:border-red-800/30"
+                      "bg-red-50/80 border-red-200 dark:bg-red-900/20 dark:border-red-800/30"
                   )}
                 >
                   <div className="flex items-center justify-between">
@@ -583,9 +348,12 @@ export function PatientInformation({
                     <Activity
                       className={cn(
                         "h-8 w-8",
-                        bmiCategory.color.includes("green") && "text-green-400",
-                        bmiCategory.color.includes("amber") && "text-amber-400",
-                        bmiCategory.color.includes("red") && "text-red-400"
+                        bmiCategory.color.includes("green") &&
+                          "text-green-400 dark:text-green-400",
+                        bmiCategory.color.includes("amber") &&
+                          "text-amber-400 dark:text-amber-400",
+                        bmiCategory.color.includes("red") &&
+                          "text-red-400 dark:text-red-400"
                       )}
                     />
                   </div>
@@ -614,7 +382,7 @@ export function PatientInformation({
                 <ChevronRight className="h-3 w-3 mr-1" />
                 <span>
                   Press
-                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono mx-1 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                     Enter
                   </kbd>{" "}
                   to navigate
@@ -628,7 +396,7 @@ export function PatientInformation({
         </div>
       </div>
 
-      {/* Right Panel - Data Entry & Metrics */}
+      {/* Right Panel - Data Entry */}
       <div
         className={cn(
           "w-full sm:w-3/4 p-4 sm:p-5 transition-all duration-300",
@@ -640,12 +408,12 @@ export function PatientInformation({
           {/* Section 1: Personal Information */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-bold flex items-center gap-2">
+              <Label className="text-sm font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
                 <div className="p-1.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
                   <User className="h-4 w-4 text-white" />
                 </div>
                 Personal Information
-                <div className="ml-2 text-xs font-normal px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                <div className="ml-2 text-xs font-normal px-2 py-1 bg-blue-100 text-blue-700 rounded-full dark:bg-blue-900/30 dark:text-blue-300">
                   Required Fields
                 </div>
               </Label>
@@ -657,12 +425,12 @@ export function PatientInformation({
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-800/50 dark:to-blue-950/20 rounded-xl border-2 border-blue-100 dark:border-blue-800/30 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gradient-to-br from-white to-blue-50/50 rounded-xl border-2 border-blue-100 shadow-sm dark:from-gray-800/50 dark:to-blue-950/20 dark:border-blue-800/30">
               {/* Full Name */}
               <div className="space-y-2">
                 <Label
                   htmlFor="patientName"
-                  className="text-xs font-semibold flex items-center gap-2"
+                  className="text-xs font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300"
                 >
                   <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
                   Full Patient Name *
@@ -674,7 +442,7 @@ export function PatientInformation({
                   onChange={(e) => onUpdateField("patientName", e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, "patientName")}
                   onFocus={() => setActiveSection("personal")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
+                  className="h-9 text-sm bg-white border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 placeholder:text-gray-500 dark:bg-gray-800 dark:border-blue-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                   placeholder="Enter patient's full name"
                   required
                 />
@@ -684,7 +452,7 @@ export function PatientInformation({
               <div className="space-y-2">
                 <Label
                   htmlFor="patientAge"
-                  className="text-xs font-semibold flex items-center gap-2"
+                  className="text-xs font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300"
                 >
                   <Calendar className="h-3.5 w-3.5 text-blue-500" />
                   Age (years)
@@ -699,7 +467,7 @@ export function PatientInformation({
                   onChange={(e) => onUpdateField("patientAge", e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, "patientAge")}
                   onFocus={() => setActiveSection("personal")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
+                  className="h-9 text-sm bg-white border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 placeholder:text-gray-500 dark:bg-gray-800 dark:border-blue-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                   placeholder="e.g., 35"
                 />
               </div>
@@ -708,7 +476,7 @@ export function PatientInformation({
               <div className="space-y-2">
                 <Label
                   htmlFor="patientGender"
-                  className="text-xs font-semibold"
+                  className="text-xs font-semibold text-gray-700 dark:text-gray-300"
                 >
                   Sex
                 </Label>
@@ -723,35 +491,35 @@ export function PatientInformation({
                     ref={inputRefs.current.patientGender}
                     id="patientGender"
                     onFocus={() => setActiveSection("personal")}
-                    className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
+                    className="h-9 text-sm bg-white border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:bg-gray-800 dark:border-blue-700 dark:text-gray-100"
                     onKeyDown={(e) =>
                       handleKeyDown(e as React.KeyboardEvent, "patientGender")
                     }
                   >
                     <SelectValue placeholder="Select sex" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700">
+                  <SelectContent className="bg-white border-blue-200 dark:bg-gray-800 dark:border-blue-700">
                     <SelectItem
                       value="Male"
-                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                      className="text-sm text-gray-900 hover:bg-blue-50 focus:bg-blue-50 dark:text-gray-200 dark:hover:bg-blue-900/30 dark:focus:bg-blue-900/30"
                     >
                       Male
                     </SelectItem>
                     <SelectItem
                       value="Female"
-                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                      className="text-sm text-gray-900 hover:bg-blue-50 focus:bg-blue-50 dark:text-gray-200 dark:hover:bg-blue-900/30 dark:focus:bg-blue-900/30"
                     >
                       Female
                     </SelectItem>
                     <SelectItem
                       value="Other"
-                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                      className="text-sm text-gray-900 hover:bg-blue-50 focus:bg-blue-50 dark:text-gray-200 dark:hover:bg-blue-900/30 dark:focus:bg-blue-900/30"
                     >
                       Other
                     </SelectItem>
                     <SelectItem
                       value="Prefer not to say"
-                      className="text-sm text-gray-900 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-50 dark:focus:bg-blue-900/30"
+                      className="text-sm text-gray-900 hover:bg-blue-50 focus:bg-blue-50 dark:text-gray-200 dark:hover:bg-blue-900/30 dark:focus:bg-blue-900/30"
                     >
                       Prefer not to say
                     </SelectItem>
@@ -763,7 +531,7 @@ export function PatientInformation({
               <div className="space-y-2">
                 <Label
                   htmlFor="patientPhone"
-                  className="text-xs font-semibold flex items-center gap-2"
+                  className="text-xs font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300"
                 >
                   <Phone className="h-3.5 w-3.5 text-blue-500" />
                   Contact Number
@@ -778,7 +546,7 @@ export function PatientInformation({
                   }
                   onKeyDown={(e) => handleKeyDown(e, "patientPhone")}
                   onFocus={() => setActiveSection("personal")}
-                  className="h-9 text-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-gray-100"
+                  className="h-9 text-sm bg-white border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 placeholder:text-gray-500 dark:bg-gray-800 dark:border-blue-700 dark:text-gray-100 dark:placeholder:text-gray-400"
                   placeholder="09123456789"
                 />
               </div>

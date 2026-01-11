@@ -569,37 +569,6 @@ export default function DashboardClient({
                       </div>
                     </div>
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="amounts"
-                    className="
-                        relative 
-                        data-[state=active]:text-primary 
-                        data-[state=active]:border-b-2 
-                        data-[state=active]:border-primary 
-                        data-[state=active]:bg-primary/5
-                        rounded-none 
-                        px-3 sm:px-4 md:px-6 
-                        py-3 sm:py-4
-                        h-auto 
-                        text-xs sm:text-sm
-                        flex-shrink-0
-                        flex items-center gap-1 sm:gap-2
-                        text-muted-foreground
-                        dark:text-gray-300
-                        dark:data-[state=active]:text-primary
-                        dark:data-[state=active]:bg-primary/10
-                        transition-colors duration-200
-                        hover:text-foreground dark:hover:text-white
-                      "
-                  >
-                    <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                    <div className="text-right">
-                      <div className="font-medium sm:font-semibold">بل ها </div>
-                      <div className="hidden xs:block text-[10px] sm:text-xs text-muted-foreground dark:text-gray-400">
-                        مدیریت مبالغ
-                      </div>
-                    </div>
-                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="create" className="p-4 sm:p-6">
